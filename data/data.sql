@@ -38,12 +38,25 @@ CREATE TABLE IF NOT EXISTS "datasources" (
     date TEXT NOT NULL, -- date the data was produced
     path TEXT NOT NULL -- path to the data file on disk
 );
+INSERT INTO datasources VALUES(1,'Response to Feb 2, 2024 FOIA Request','WV Governor''s Office','2025-01-10','datasources/wv-governors-office/FOIA Response- Siford- 1-10-25.pdf');
+INSERT INTO datasources VALUES(2,'Response to Jan 14, 2025 FOIA Request','WV Aviation Division','2025-01-21','datasources/wv-aviation-division/Siford_011425_FOIA Response.pdf');
+INSERT INTO datasources VALUES(3,'Response to Jan 14, 2025 FOIA Request','WV Aviation Division','2025-01-21','datasources/wv-aviation-division/Flight Log_N1WV 010117-011425.pdf');
+INSERT INTO datasources VALUES(4,'Response to Jan 14, 2025 FOIA Request','WV Aviation Division','2025-01-21','datasources/wv-aviation-division/Flight Log_N2WV 010117-011425.pdf');
+INSERT INTO datasources VALUES(5,'Response to Jan 14, 2025 FOIA Request','WV Aviation Division','2025-01-21','datasources/wv-aviation-division/Flight Log_N3WV 010117-011425.pdf');
+INSERT INTO datasources VALUES(6,'Response to Jan 14, 2025 FOIA Request','WV Aviation Division','2025-01-21','datasources/wv-aviation-division/Flight Log_N5WV 010117-011425.pdf');
+INSERT INTO datasources VALUES(7,'Response to Jan 14, 2025 FOIA Request','WV Aviation Division','2025-01-21','datasources/wv-aviation-division/Flight Log_N6WV 010117-011425.pdf');
 CREATE TABLE IF NOT EXISTS "datasource_trips" (
     datasource_id INTEGER NOT NULL,
     trip_id INTEGER NOT NULL,
     FOREIGN KEY (datasource_id) REFERENCES datasources(id),
     FOREIGN KEY (trip_id) REFERENCES trips(id)
 );
+INSERT INTO datasource_trips (datasource_id, trip_id) SELECT 1, id FROM trips WHERE tail_no = 'N1WV' AND date BETWEEN '2021-01-08' AND '2024-11-30';
+INSERT INTO datasource_trips (datasource_id, trip_id) SELECT 3, id FROM trips WHERE tail_no = 'N1WV' AND date BETWEEN '2017-01-01' AND '2025-01-14';
+INSERT INTO datasource_trips (datasource_id, trip_id) SELECT 4, id FROM trips WHERE tail_no = 'N2WV' AND date BETWEEN '2017-01-01' AND '2025-01-14';
+INSERT INTO datasource_trips (datasource_id, trip_id) SELECT 5, id FROM trips WHERE tail_no = 'N3WV' AND date BETWEEN '2017-01-01' AND '2025-01-14';
+INSERT INTO datasource_trips (datasource_id, trip_id) SELECT 6, id FROM trips WHERE tail_no = 'N5WV' AND date BETWEEN '2017-01-01' AND '2025-01-14';
+INSERT INTO datasource_trips (datasource_id, trip_id) SELECT 7, id FROM trips WHERE tail_no = 'N6WV' AND date BETWEEN '2017-01-01' AND '2025-01-14';
 CREATE INDEX IF NOT EXISTS idx_trips_tail_no ON trips(tail_no);
 CREATE INDEX IF NOT EXISTS idx_aircraft_tail_no ON aircraft(tail_no);
 CREATE INDEX IF NOT EXISTS idx_trips_date ON trips(date DESC);
