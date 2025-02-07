@@ -48,7 +48,7 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
         }
     )
 
-    
+
     const createQueryString = useCallback(
         (params: Record<string, string | undefined>) => {
             const newSearchParams = new URLSearchParams()
@@ -76,7 +76,7 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
     const updateFilter = useCallback(
         (params: Record<string, string | undefined>) => {
             startTransition(() => {
-                router.push(`${pathname}?${createQueryString(params)}`)
+                router.push(`${pathname}?${createQueryString(params)}`, { scroll: false })
             })
         },
         [pathname, router, createQueryString]
@@ -89,10 +89,10 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
         })
     }, [pathname, router])
 
-    const handleDateSelect = ( range: DateRange | undefined ) => {
+    const handleDateSelect = (range: DateRange | undefined) => {
         if (!range) {
             setSelectedRange({})
-            updateFilter({'startDate': undefined, 'endDate': undefined})
+            updateFilter({ 'startDate': undefined, 'endDate': undefined })
             return
         }
         setSelectedRange(range)
@@ -103,158 +103,158 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
     };
 
     return (
-            <div className="p-4 grid gap-2 md:grid-cols-2 lg:grid-cols-5 z-10">
-                <div className="col-span-full relative">
-                    <Search className="text-muted-foreground absolute left-3 top-1/2 transform -translate-y-1/2 opacity-30 focus-within:opacity-70" />
-                    <Input
-                        placeholder="Search trips..."
-                        className="pl-10 w-full"
-                        defaultValue={searchParams.search}
-                        onChange={(e) => updateFilter({'search': e.target.value})}
-                    />
-                </div>
-                <p className="text-xs text-muted-foreground col-span-full">
-                    Full-text search supports on: <code>route, passengers, department, division, and comments.</code>
-                </p>
+        <div className="p-4 grid gap-2 md:grid-cols-2 lg:grid-cols-5 z-10">
+            <div className="col-span-full relative">
+                <Search className="text-muted-foreground absolute left-3 top-1/2 transform -translate-y-1/2 opacity-30 focus-within:opacity-70" />
+                <Input
+                    placeholder="Search trips..."
+                    className="pl-10 w-full"
+                    defaultValue={searchParams.search}
+                    onChange={(e) => updateFilter({ 'search': e.target.value })}
+                />
+            </div>
+            <p className="text-xs text-muted-foreground col-span-full">
+                Full-text search supports on: <code>route, passengers, department, division, and comments.</code>
+            </p>
 
-                {!pathname.startsWith("/aircraft") && <div className="md:col-span-full lg:col-span-1">
+            {!pathname.startsWith("/aircraft") && <div className="md:col-span-full lg:col-span-1">
+                <Label className="text-sm mb-1 block">
+                    Aircraft
+                </Label>
+                <Select
+                    value={searchParams.aircraft || ''}
+                    onValueChange={(value) => updateFilter({ 'aircraft': value })}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select Aircraft" className="hover:bg-primary-foreground" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {aircraft?.filter(a => a.trip_count > 0).map((a) => (
+                            <SelectItem key={a.tail_no} value={a.tail_no}>
+                                {a.tail_no} - {a.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>}
+
+            <div>
+                <Label className="text-sm mb-1 block">
+                    Date Range
+                </Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            className="w-full justify-start text-left h-9 px-3 py-2 text-sm bg-transparent border border-input hover:text-primary-foreground"
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedRange.from || selectedRange.to ? (
+                                <>
+                                    {selectedRange.from && format(selectedRange.from, 'PP')}
+                                    {selectedRange.to && ' - '}
+                                    {selectedRange.to && format(selectedRange.to, 'PP')}
+                                </>
+                            ) : (
+                                <span>Pick a date range</span>
+                            )}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            mode="range"
+                            defaultMonth={selectedRange.from ? selectedRange.from : new Date()}
+                            selected={selectedRange.from || selectedRange.to ? {
+                                from: selectedRange.from ? selectedRange.from : undefined,
+                                to: selectedRange.to ? selectedRange.to : undefined,
+                            } : undefined}
+                            onSelect={handleDateSelect}
+                            initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
+
+            <div>
+                <Label className="text-sm mb-1 block">
+                    Department
+                </Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between h-9 px-3 py-2 text-sm bg-transparent border border-input hover:text-primary-foreground"
+                        >
+                            {searchParams.department
+                                ? departments.find((dept) => dept === searchParams.department)
+                                : "Select department..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                            <CommandInput placeholder="Search department..." />
+                            <CommandEmpty>No department found.</CommandEmpty>
+                            <CommandGroup>
+                                {departments.map((dept) => (
+                                    <CommandItem
+                                        key={dept}
+                                        onSelect={() => {
+                                            updateFilter({ 'department': dept })
+                                        }}
+                                    >
+                                        <Check
+                                            className={`mr-2 h-4 w-4 ${searchParams.department === dept ? "opacity-100" : "opacity-0"}`}
+                                        />
+                                        {dept}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
+            </div>
+
+            {divisions.filter((div) => div.length > 0).length > 0 && (
+                <div>
                     <Label className="text-sm mb-1 block">
-                        Aircraft
+                        Division
                     </Label>
                     <Select
-                        value={searchParams.aircraft || ''}
-                        onValueChange={(value) => updateFilter({'aircraft': value})}
+                        value={searchParams.division || ''}
+                        onValueChange={(value) => updateFilter({ 'division': value })}
                     >
                         <SelectTrigger>
-                            <SelectValue placeholder="Select Aircraft" className="hover:bg-primary-foreground" />
+                            <SelectValue placeholder="Select Division" />
                         </SelectTrigger>
                         <SelectContent>
-                            {aircraft?.filter(a => a.trip_count > 0).map((a) => (
-                                <SelectItem key={a.tail_no} value={a.tail_no}>
-                                    {a.tail_no} - {a.name}
+                            {divisions.filter((div) => div.length > 0).map((div) => (
+                                <SelectItem key={div} value={div}>
+                                    {div}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
-                </div>}
-
-                <div>
-                    <Label className="text-sm mb-1 block">
-                        Date Range
-                    </Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                className="w-full justify-start text-left h-9 px-3 py-2 text-sm bg-transparent border border-input hover:text-primary-foreground"
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {selectedRange.from || selectedRange.to ? (
-                                    <>
-                                        {selectedRange.from && format(selectedRange.from, 'PP')}
-                                        {selectedRange.to && ' - '}
-                                        {selectedRange.to && format(selectedRange.to, 'PP')}
-                                    </>
-                                ) : (
-                                    <span>Pick a date range</span>
-                                )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode="range"
-                                defaultMonth={selectedRange.from ? selectedRange.from : new Date()}
-                                selected={selectedRange.from || selectedRange.to ? {
-                                    from: selectedRange.from ? selectedRange.from : undefined,
-                                    to: selectedRange.to ? selectedRange.to : undefined,
-                                } : undefined}
-                                onSelect={handleDateSelect}
-                                initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
                 </div>
+            )}
 
-                <div>
-                    <Label className="text-sm mb-1 block">
-                        Department
-                    </Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                className="w-full justify-between h-9 px-3 py-2 text-sm bg-transparent border border-input hover:text-primary-foreground"
-                            >
-                                {searchParams.department
-                                    ? departments.find((dept) => dept === searchParams.department)
-                                    : "Select department..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                                <CommandInput placeholder="Search department..." />
-                                <CommandEmpty>No department found.</CommandEmpty>
-                                <CommandGroup>
-                                    {departments.map((dept) => (
-                                        <CommandItem
-                                            key={dept}
-                                            onSelect={() => {
-                                                updateFilter({'department': dept})
-                                            }}
-                                        >
-                                            <Check
-                                                className={`mr-2 h-4 w-4 ${searchParams.department === dept ? "opacity-100" : "opacity-0"}`}
-                                            />
-                                            {dept}
-                                        </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-
-                {divisions.filter((div) => div.length > 0).length > 0 && (
+            {Object.values(searchParams).some(Boolean) && (
+                Object.entries(searchParams).filter(([k, v]) => v && allowedFilters.includes(k) && !(pathname.startsWith('/' + k))).length > 0
+            ) && (
                     <div>
                         <Label className="text-sm mb-1 block">
-                            Division
+                            &nbsp;
                         </Label>
-                        <Select
-                            value={searchParams.division || ''}
-                            onValueChange={(value) => updateFilter({'division': value})}
+                        <Button
+                            onClick={clearFilters}
+                            className="w-full"
                         >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select Division" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {divisions.filter((div) => div.length > 0).map((div) => (
-                                    <SelectItem key={div} value={div}>
-                                        {div}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            <X className="h-4 w-4" />
+                            Clear Filters
+                        </Button>
                     </div>
                 )}
-
-                {Object.values(searchParams).some(Boolean) && (
-                    Object.entries(searchParams).filter(([k, v]) => v && allowedFilters.includes(k) && !(pathname.startsWith('/'+k))).length > 0
-                ) && (
-                    <div>
-                    <Label className="text-sm mb-1 block">
-                        &nbsp;
-                    </Label>
-                    <Button
-                        onClick={clearFilters}
-                        className="w-full"
-                    >
-                        <X className="h-4 w-4" />
-                        Clear Filters
-                    </Button>
-                    </div>
-                )}
-            </div>
+        </div>
     )
 }

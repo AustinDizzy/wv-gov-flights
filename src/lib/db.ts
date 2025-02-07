@@ -51,7 +51,7 @@ export async function getTrips(searchParams: TripSearchParams): Promise<FleetTri
     if (searchParams?.division) where.push('division = @division');
     if (searchParams?.startDate) where.push('date >= @startDate');
     if (searchParams?.endDate) where.push('date <= @endDate');
-    if (searchParams?.search) where.push('id IN (SELECT id FROM trips_fts WHERE trips_fts MATCH @search)');
+    if (searchParams?.search) where.push('rowid IN (SELECT rowid FROM trips_fts WHERE trips_fts MATCH @search)');
 
     const whereStmt = where.length > 0 ? where.join(' AND ') : '1=1';
     const db = await getDB();
