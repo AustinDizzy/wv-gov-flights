@@ -2,20 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Light mode - sky inspired with WV heritage */
+    --background: 210 50% 98%;  /* Clean sky white */
+    --foreground: 215 35% 15%;  /* Deep slate */
+    --card: 0 0% 100%;
+    --card-foreground: 215 35% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 35% 15%;
+    
+    /* Primary colors - modernized WV inspiration */
+    --primary: 203 35% 55%;     /* Modern navy */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 42 90% 50%;    /* Refined gold */
+    --secondary-foreground: 215 35% 15%;
+    
+    /* Interface colors */
+    --muted: 215 20% 90%;
+    --muted-foreground: 215 35% 30%;
+    /* --accent: 199 75% 45%;      Sky blue accent */
+    /* --accent-foreground: 215 35% 15%; */
+    --accent: 203 35% 55%;     /* Modern navy */
+    --accent-foreground: 0 0% 100%;
+    
+    /* System colors */
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 20% 85%;
+    --input: 215 20% 85%;
+    --ring: 215 85% 25%;
+    
+    /* Data visualization colors - aviation/mountain inspired */
+    --chart-1: 215 85% 55%;     /* Navy */
+    --chart-2: 42 90% 50%;      /* Gold */
+    --chart-3: 199 75% 45%;     /* Sky blue */
+    --chart-4: 275 70% 45%;     /* Mountain twilight */
+    --chart-5: 150 45% 45%;     /* Valley green */
+    
+    --radius: 0.5rem;
+  }
+  
+  .dark {
+    /* Dark mode - night sky inspired */
+    --background: 215 35% 12%;
+    --foreground: 210 25% 98%;
+    --card: 215 35% 15%;
+    --card-foreground: 210 25% 98%;
+    --popover: 215 35% 15%;
+    --popover-foreground: 210 25% 98%;
+    
+    /* Primary colors - enhanced for dark mode */
+    --primary: 215 85% 55%;
+    --primary-foreground: 210 25% 98%;
+    --secondary: 42 90% 50%;
+    --secondary-foreground: 215 35% 15%;
+    
+    /* Interface colors */
+    --muted: 215 35% 25%;
+    --muted-foreground: 210 25% 70%;
+    --accent: 199 75% 55%;
+    --accent-foreground: 210 25% 98%;
+    
+    /* System colors */
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 210 25% 98%;
+    --border: 215 35% 25%;
+    --input: 215 35% 25%;
+    --ring: 42 90% 50%;
+    
+    /* Data visualization colors - night flight inspired */
+    --chart-1: 215 85% 55%;     /* Bright navy */
+    --chart-2: 42 90% 50%;      /* Gold */
+    --chart-3: 199 75% 55%;     /* Night sky blue */
+    --chart-4: 275 70% 55%;     /* Evening purple */
+    --chart-5: 150 45% 55%;     /* Valley mist */
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.leaflet-layer:not(.leaflet-heatmap-layer) {
+  filter: grayscale(100%) hue-rotate(180deg) brightness(100%);
 }
