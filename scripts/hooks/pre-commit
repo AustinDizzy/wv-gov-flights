@@ -1,0 +1,8 @@
+#!/bin/bash
+
+DB_PATH="data/data.db"
+
+if git diff --cached --name-only | grep -q "$DB_PATH"; then
+    node scripts/update-readme.js "$DB_PATH"
+    git add README.md
+fi
