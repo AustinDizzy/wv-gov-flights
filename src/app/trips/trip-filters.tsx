@@ -19,7 +19,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { format, parse } from "date-fns"
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DateRange } from "react-day-picker"
 
 interface TripFiltersProps {
@@ -47,7 +47,7 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
             to: searchParams.endDate ? parse(searchParams.endDate, 'yyyy-MM-dd', new Date()) : undefined,
         }
     )
-
+    const [searchTerm, setSearchTerm] = useState(searchParams.search || '')
 
     const createQueryString = useCallback(
         (params: Record<string, string | undefined>) => {
@@ -61,7 +61,7 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
             // Update with new params
             for (const [key, value] of Object.entries(params).filter(([key]) => allowedFilters.includes(key))) {
                 if (pathname.startsWith(`/${key}`)) continue
-                if (value === undefined) {
+                if (value === undefined || value === '') {
                     newSearchParams.delete(key)
                 } else {
                     newSearchParams.set(key, value)
@@ -75,9 +75,12 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
 
     const updateFilter = useCallback(
         (params: Record<string, string | undefined>) => {
-            startTransition(() => {
-                router.push(`${pathname}?${createQueryString(params)}`, { scroll: false })
-            })
+            const queryString = createQueryString(params)
+            if (queryString !== new URLSearchParams(window.location.search).toString()) {
+                startTransition(() => {
+                    router.push(`${pathname}?${queryString}`, { scroll: false })
+                })
+            }
         },
         [pathname, router, createQueryString]
     )
@@ -102,6 +105,16 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
         })
     };
 
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            updateFilter({ 'search': searchTerm })
+        }, 500)
+
+        return () => {
+            clearTimeout(handler)
+        }
+    }, [searchTerm, updateFilter])
+
     return (
         <div className="p-4 grid gap-2 md:grid-cols-2 lg:grid-cols-5 z-10">
             <div className="col-span-full relative">
@@ -110,7 +123,7 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
                     placeholder="Search trips..."
                     className="pl-10 w-full"
                     defaultValue={searchParams.search}
-                    onChange={(e) => updateFilter({ 'search': e.target.value })}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
             <p className="text-xs text-muted-foreground col-span-full">
