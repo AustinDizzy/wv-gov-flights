@@ -5,6 +5,7 @@ FROM node:18-alpine AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SQL_FILE="data/data.sql"
+ENV CI=true
 
 # Install dependencies
 FROM base AS deps

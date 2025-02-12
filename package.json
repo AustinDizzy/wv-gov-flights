@@ -12,7 +12,7 @@
     "email": "~abs/wv-gov-flights@lists.sr.ht"
   },
   "scripts": {
-    "preinstall": "node ./scripts/hooks/install.js",
+    "preinstall": "if [ \"$CI\" != \"true\" ]; then node ./scripts/hooks/install.js; fi",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
