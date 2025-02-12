@@ -1,5 +1,5 @@
 import { ModeToggle } from '@/components/ui/mode-toggle';
-import { Mail } from 'lucide-react';
+import { Github, Mail } from 'lucide-react';
 import Link from 'next/link';
 
 export const Footer: React.FC = () => {
@@ -11,9 +11,14 @@ export const Footer: React.FC = () => {
                     <p>This site is not affiliated with the government of the State of West Virginia.</p>
                 </div>
                 <div className='ml-auto flex gap-8 items-center text-xs'>
+                    <div className='flex flex-col gap-4 items-center ml-auto'>
                     <Link href="mailto:~abs/wv-gov-flights@lists.sr.ht" className='hover:text-primary hover:underline text-muted-foreground/50 font-mono flex gap-1 items-center' target='nofollow noopener'>
                         <Mail size={12} className='inline' />~abs/wv-gov-flights@lists.sr.ht
                     </Link>
+                    <Link href="https://github.com/AustinDizzy/wv-gov-flights" className='hover:text-primary hover:underline text-muted-foreground/50 font-mono flex gap-1 items-center' target='nofollow noopener'>
+                        <Github size={12} className='inline' />AustinDizzy/wv-gov-flights
+                    </Link>
+                    </div>
                     <ModeToggle />
                 </div>
             </div>
