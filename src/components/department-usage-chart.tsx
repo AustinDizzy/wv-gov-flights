@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FleetTrip } from "@/types";
+import { ChartPie } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface DepartmentUsageChartProps {
@@ -55,7 +56,10 @@ export function DepartmentUsageChart({ trips, type = 'department' }: DepartmentU
     return (
         chartData.length > 0 && <Card>
             <CardHeader className="space-y-1">
-                <CardTitle className="text-xl capitalize">{type} Usage</CardTitle>
+                <CardTitle className="text-xl capitalize flex items-center cursor-pointer">
+                    <ChartPie size={20} className="inline mr-2" />
+                    {type} Usage
+                </CardTitle>
                 <p className="text-sm text-muted-foreground">Distribution of trips across {type}s</p>
             </CardHeader>
             <CardContent>

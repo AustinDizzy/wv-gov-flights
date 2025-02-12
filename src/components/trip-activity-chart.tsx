@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FleetTrip } from "@/types";
+import { ChartColumn } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, TooltipProps } from 'recharts';
 
 interface TripActivityChartProps {
@@ -11,14 +12,7 @@ interface TripActivityChartProps {
 export function TripActivityChart({ trips }: TripActivityChartProps) {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-    const formatDate = (date: string) => {
-        if (isMobile) {
-            // For mobile, show just MMM YY (e.g., "Jan 23")
-            const [month, year] = date.split(' ');
-            return `${month} ${year.slice(2)}`;
-        }
-        return date;
-    };
+    const formatDate = (date: string) => isMobile ? date.replace(/(\w+) (\d{2})\d{2}/, '$1 $2') : date;
 
     const data = trips.reduce((acc, trip) => {
         const month = new Date(trip.date).toLocaleString('default', { month: 'short', year: 'numeric' });
@@ -48,7 +42,10 @@ export function TripActivityChart({ trips }: TripActivityChartProps) {
     return (
         <Card>
             <CardHeader className="space-y-1">
-                <CardTitle className="text-xl">Trip Activity</CardTitle>
+                <CardTitle className="text-xl flex items-center cursor-pointer">
+                    <ChartColumn size={20} className="inline-block mr-2" />
+                    Trip Activity
+                </CardTitle>
                 <p className="text-sm text-muted-foreground">Monthly distribution of flights</p>
             </CardHeader>
             <CardContent>
