@@ -160,7 +160,7 @@ function MapComponent({
                 onMapReady();
             });
         }
-    }, [trips, showHeatmap, processTripsData, onMapReady]);
+    }, [trips, showHeatmap, processTripsData, onMapReady, destroyMap]);
 
     useEffect(() => {
         const frame = requestAnimationFrame(() => {
