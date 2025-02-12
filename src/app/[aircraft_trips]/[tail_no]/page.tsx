@@ -8,7 +8,7 @@ import { TripFilters } from '@/app/trips/trip-filters';
 import { TripsTable } from '@/app/trips/trips-table';
 import { FleetMember, TripSearchParams } from '@/types';
 import { cn } from '@/lib/utils';
-import Heatmap from '@/components/Heatmap';
+import TripsMap from '@/components/TripsMap/TripsMap';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { notFound } from 'next/navigation';
@@ -49,7 +49,7 @@ export default async function AircraftTripsPage({
         getDivisions((await searchParams).department),
     ]);
 
-    const flightPaths = trips.flatMap(t => t.flight_path ? [t.flight_path] : []);
+    const flightPaths = trips.filter(t => t.flight_path!).map(({ flight_path: wkt, date, route }) => ({ wkt, date, route }));
     const totalHours = craft_trips.reduce((acc, trip) => acc + trip.flight_hours, 0);
 
     return (
@@ -73,7 +73,7 @@ export default async function AircraftTripsPage({
                                         height={300}
                                         className='rounded-t-md md:rounded-l-md md:rounded-t-none object-cover w-full h-full'
                                     />
-                                    <span className='font-mono text-muted-foreground text-xs absolute bottom-2 right-2 px-2 py-1 bg-white bg-opacity-50 cursor-pointer'>
+                                    <span className='font-mono text-slate-600 text-xs absolute bottom-2 right-2 px-2 py-1 bg-white bg-opacity-50 cursor-pointer'>
                                         <a href={aircraft.content_json.image.replace(/\/download\?inline$/, '')} className='group' rel='noopener nofollow'>
                                             (source: <span className='group-hover:underline text-primary'>
                                                 {new URL(aircraft.content_json.image).hostname}
@@ -174,9 +174,7 @@ export default async function AircraftTripsPage({
                 )}
 
                 {flightPaths.length > 1 && (
-                    <Card className="p-4">
-                        <Heatmap flightPaths={flightPaths} aircraft={aircraft} />
-                    </Card>
+                    <TripsMap trips={trips} aircraft={aircraft} />
                 )}
                 {aircraft.trip_count > 0 && <div>
                     <TripFilters

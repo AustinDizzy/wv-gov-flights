@@ -93,3 +93,32 @@
 .leaflet-layer:not(.leaflet-heatmap-layer) {
   filter: grayscale(100%) hue-rotate(180deg) brightness(100%);
 }
+
+.flight-path {
+    transition: all 0.2s ease;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.flight-path:hover {
+    cursor: pointer;
+    z-index: 1000 !important;
+}
+
+.flight-path-selected {
+    z-index: 1000 !important;
+    filter: drop-shadow(0 0 4px hsl(var(--secondary) / 0.5));
+}
+
+/* Make tooltips match the theme */
+.leaflet-tooltip {
+    @apply bg-background border-border text-foreground shadow-md mr-4;
+}
+
+.selected-tooltip {
+    @apply bg-primary text-primary-foreground shadow-lg !important;
+}
+
+.selected-tooltip::before {
+    border-top-color: hsl(var(--primary)) !important;
+}

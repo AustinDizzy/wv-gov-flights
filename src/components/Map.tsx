@@ -35,7 +35,9 @@ export default function Map({ flightPath, flightDate, flightHours, flightCraft }
       
       coordsRef.current = parseWKT(flightPath);
 
-      map.current = L.map(mapContainer.current as HTMLElement).setView(coordsRef.current[0], 7);
+      if (!map.current) {
+        map.current = L.map(mapContainer.current as HTMLElement).setView(coordsRef.current[0], 7);
+      }
 
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
