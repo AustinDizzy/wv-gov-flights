@@ -46,7 +46,7 @@ export default async function PassengerPage({
                             <div>
                                 <p className="text-sm">Total Flight Time</p>
                                 <p className="text-xl font-semibold">
-                                    <DurationTooltip duration={totalHours} variant="long" />
+                                    <DurationTooltip duration={totalHours} variant="full" />
                                 </p>
                             </div>
                             {flightPaths.length > 0 && <div>
