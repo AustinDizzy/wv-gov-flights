@@ -79,20 +79,6 @@ export async function getPassengers(trips: FleetTrip[]): Promise<Map<string, Fle
     return passengers;
 }
 
-export async function getDepartments(aircraft?: string): Promise<string[]> {
-    return getDB().then(db => {
-        const q = `SELECT DISTINCT department FROM trips WHERE ${aircraft ? 'tail_no = ?' : '1=1'} ORDER BY department`;
-        return ((aircraft ? db.prepare(q).all(aircraft) : db.prepare(q).all()) as {department: string}[]).map(r => r.department);
-    });
-}
-
-export async function getDivisions(dept?: string): Promise<string[]> {
-    return getDB().then(db => {
-        const q = `SELECT DISTINCT division FROM trips WHERE ${dept ? 'department=?' : '1=1'} ORDER BY division`;
-        return ((dept ? db.prepare(q).all(dept) : db.prepare(q).all()) as {division: string}[]).map(r => r.division);
-    });
-}
-
 export async function getDataSources(trips?: FleetTrip[]): Promise<DataSource[]> {
     return getDB().then(db => {
         const datasources = db.prepare(`SELECT * FROM datasources`).all() as DataSource[];

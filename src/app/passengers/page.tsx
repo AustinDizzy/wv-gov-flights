@@ -1,5 +1,5 @@
 import { getPassengers, getTrips } from "@/lib/db";
-import { TripSearchParams } from "@/types";
+import type { TripSearchParams } from "@/types";
 import { PassengerTable } from "@/app/passengers/passengers-table";
 import { Suspense } from "react";
 

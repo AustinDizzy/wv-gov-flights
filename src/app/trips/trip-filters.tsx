@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useTransition } from "react"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import {
     Select,
@@ -40,6 +40,7 @@ const allowedFilters = ['search', 'aircraft', 'department', 'division', 'startDa
 export function TripFilters({ aircraft, departments, divisions, searchParams }: TripFiltersProps) {
     const router = useRouter()
     const pathname = usePathname()
+    const searchParamsObj = useSearchParams()
     const [, startTransition] = useTransition()
     const [selectedRange, setSelectedRange] = useState<{ from?: Date, to?: Date }>(
         {
@@ -47,49 +48,39 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
             to: searchParams.endDate ? parse(searchParams.endDate, 'yyyy-MM-dd', new Date()) : undefined,
         }
     )
-    const [searchTerm, setSearchTerm] = useState(searchParams.search || '')
+
+    const [searchTerm, setSearchTerm] = useState(searchParams.search || '');
 
     const createQueryString = useCallback(
         (params: Record<string, string | undefined>) => {
-            const newSearchParams = new URLSearchParams()
-
-            // Add all current params
-            for (const [key, value] of Object.entries(searchParams)) {
-                if (value && allowedFilters.includes(key) && !pathname.startsWith(`/${key}`)) newSearchParams.set(key, value)
-            }
-
-            // Update with new params
-            for (const [key, value] of Object.entries(params).filter(([key]) => allowedFilters.includes(key))) {
-                if (pathname.startsWith(`/${key}`)) continue
-                if (value === undefined || value === '') {
-                    newSearchParams.delete(key)
-                } else {
-                    newSearchParams.set(key, value)
+            const newSearchParams = new URLSearchParams(searchParamsObj.toString());
+            Object.entries(params).forEach(([key, value]) => {
+                if (allowedFilters.includes(key) && !pathname.startsWith(`/${key}`)) {
+                    if (value) {
+                        newSearchParams.set(key, value)
+                    } else {
+                        newSearchParams.delete(key)
+                    }
                 }
-            }
-
-            return newSearchParams.toString()
+            });
+            return newSearchParams.toString();
         },
-        [searchParams, pathname]
-    )
+        [pathname, searchParamsObj]
+    );
 
     const updateFilter = useCallback(
         (params: Record<string, string | undefined>) => {
-            const queryString = createQueryString(params)
-            if (queryString !== new URLSearchParams(window.location.search).toString()) {
-                startTransition(() => {
-                    router.push(`${pathname}?${queryString}`, { scroll: false })
-                })
+            const queryString = createQueryString(params);
+            if (queryString !== window.location.search.substring(1)) {
+                startTransition(() => router.push(`${pathname}?${queryString}`, { scroll: false }));
             }
         },
         [pathname, router, createQueryString]
-    )
+    );
 
     const clearFilters = useCallback(() => {
         setSelectedRange({})
-        startTransition(() => {
-            router.push(pathname)
-        })
+        startTransition(() => router.push(pathname))
     }, [pathname, router])
 
     const handleDateSelect = (range: DateRange | undefined) => {
@@ -216,6 +207,7 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
                                         onSelect={() => {
                                             updateFilter({ 'department': dept })
                                         }}
+                                        className="cursor-pointer"
                                     >
                                         <Check
                                             className={`mr-2 h-4 w-4 ${searchParams.department === dept ? "opacity-100" : "opacity-0"}`}

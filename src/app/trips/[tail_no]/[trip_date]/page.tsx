@@ -13,8 +13,17 @@ import { parseNameSlug } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { ExternalLink, InfoIcon } from "lucide-react";
 
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
-    return (await getTrips({})).map(({ tail_no, date }) => ({ params: { tail_no, trip_date: date } }));
+    return (await getTrips({})).map(({ tail_no, date }) => ({ tail_no, trip_date: date }));
+}
+
+export async function generateMetadata(props: { params: Promise<{ tail_no: string, trip_date: string }> }) {
+    const params = await props.params;
+    const aircraft = await getAircraft(params.tail_no).then(a => a?.pop());
+    if (!aircraft) return notFound();
+    return { title: `${aircraft.tail_no} - Trip on ${params.trip_date}` };
 }
 
 function isRoundTrip(route: string): boolean {

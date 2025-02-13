@@ -1,6 +1,6 @@
 'use client'
 
-import { FleetMember } from '@/types'
+import type { FleetMember } from '@/types'
 import {
     Table,
     TableBody,

@@ -1,6 +1,6 @@
 import { getPassengers, getTrips } from "@/lib/db";
 import { getPaxMap, hasPax, parseNameSlug } from "@/lib/utils";
-import { TripsTable } from "@/app/trips/trips-table";
+import { TripsDataTable } from "@/app/trips/trips-datatable";
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { DurationTooltip } from "@/components/duration-tooltip";
@@ -65,7 +65,7 @@ export default async function PassengerPage({
                     </Card>
                 </div>
                 <Suspense>
-                    <TripsTable trips={trips} />
+                    <TripsDataTable trips={trips} />
                 </Suspense>
             </div>
         </div>

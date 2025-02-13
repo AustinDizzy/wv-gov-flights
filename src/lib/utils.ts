@@ -1,9 +1,25 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import * as turf from "@turf/turf"
+import { FleetTrip, TripSearchParams } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+export function filterTrips(trips: FleetTrip[], params: TripSearchParams): FleetTrip[] {
+    return trips.filter(trip => {
+        if (params.aircraft && trip.tail_no !== params.aircraft) return false;
+        if (params.department && trip.department !== params.department) return false;
+        if (params.division && trip.division !== params.division) return false;
+        if (params.startDate && trip.date < params.startDate) return false;
+        if (params.endDate && trip.date > params.endDate) return false;
+        if (params.search) {
+            const searchText = `${trip.route} ${trip.passengers} ${trip.department} ${trip.division} ${trip.comments}`.toLowerCase();
+            return searchText.includes(params.search.toLowerCase());
+        }
+        return true;
+    });
 }
 
 export function isValidDate(dateString: string) {

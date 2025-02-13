@@ -1,59 +1,54 @@
-import {
-    getTrips,
-    getDepartments,
-    getAircraft,
-    getDivisions,
-} from '@/lib/db';
-import { TripFilters } from '@/app/trips/trip-filters';
+import { getTrips, getAircraft } from '@/lib/db';
 import { TripsTable } from '@/app/trips/trips-table';
-import { FleetMember, TripSearchParams } from '@/types';
+import type { FleetMember } from '@/types';
 import { cn } from '@/lib/utils';
 import TripsMap from '@/components/TripsMap/TripsMap';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import { DurationTooltip } from '@/components/duration-tooltip';
 import { DistanceTooltip } from '@/components/distance-tooltip';
 import { TripActivityChart } from '@/components/trip-activity-chart';
 import { DepartmentUsageChart } from '@/components/department-usage-chart';
 import { InfoIcon } from 'lucide-react';
+import { notFound } from 'next/navigation';
+import Image from 'next/image';
+
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
     const aircraft = await getAircraft() as FleetMember[];
     return aircraft.flatMap(({ tail_no }) => [
-        { params: { tail_no, aircraft_trips: 'aircraft' } },
-        { params: { tail_no, aircraft_trips: 'trips' } },
+        { tail_no, aircraft_trips: 'aircraft' },
+        { tail_no, aircraft_trips: 'trips' },
     ]);
 }
 
-export default async function AircraftTripsPage({
-    params,
-    searchParams
-}: {
-    params: Promise<{ tail_no: string, aircraft_trips: string }>;
-    searchParams: Promise<TripSearchParams>;
-}) {
-    const page_type = (await params).aircraft_trips;
-    if (!['aircraft', 'trips'].includes(page_type)) notFound();
-    const tail_no = (await params).tail_no;
+export async function generateMetadata(props: { params: Promise<{ tail_no: string }> }) {
+    const params = await props.params;
+    const aircraft = await getAircraft(params.tail_no).then(a => a?.pop());
+    if (!aircraft) return notFound();
+    return { title: `${aircraft.tail_no} - ${aircraft.name}` };
+}
+
+export default async function AircraftTripsPage(
+    props: {
+        params: Promise<{ tail_no: string, aircraft_trips: string }>;
+    }
+) {
+    const params = await props.params;
+    if (!['aircraft', 'trips'].includes(params.aircraft_trips)) notFound();
+
+    const tail_no = params.tail_no;
     const aircraft = await getAircraft(tail_no).then(a => a?.pop()) as FleetMember;
-    (await searchParams).aircraft = aircraft.tail_no;
 
-    const [craft_trips, trips, departments, divisions] = await Promise.all([
+    const [trips] = await Promise.all([
         getTrips({ aircraft: tail_no }),
-        getTrips(await searchParams),
-        getDepartments(tail_no),
-        getDivisions((await searchParams).department),
     ]);
-
-    const flightPaths = trips.filter(t => t.flight_path!).map(({ flight_path: wkt, date, route }) => ({ wkt, date, route }));
-    const totalHours = craft_trips.reduce((acc, trip) => acc + trip.flight_hours, 0);
 
     return (
         <div className='container mx-auto space-y-6 p-2 md:p-6'>
             <div className="space-y-6" key={['trips', aircraft.tail_no].join('/')}>
-                {page_type === 'aircraft' && (
+                {params.aircraft_trips === 'aircraft' && (
                     <>
                         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-4">
                             <Badge variant={aircraft.type === "airplane" ? "secondary" : "default"}
@@ -86,26 +81,26 @@ export default async function AircraftTripsPage({
                                         <div className={cn("grid gap-6", aircraft.content_json?.image ? 'grid-cols-2' : 'md:grid-cols-4 grid-cols-2')}>
                                             <div className="space-y-2">
                                                 <p className="text-sm text-muted-foreground"># of Trips</p>
-                                                <p className="text-2xl font-bold">{craft_trips.length}</p>
+                                                <p className="text-2xl font-bold">{trips.length}</p>
                                             </div>
                                             <div className="space-y-2">
                                                 <p className="text-sm text-muted-foreground">Flight Hours</p>
                                                 <p className="text-2xl font-bold">
-                                                    <DurationTooltip duration={totalHours} />
+                                                    <DurationTooltip duration={trips.reduce((acc, trip) => acc + trip.flight_hours, 0)} />
                                                 </p>
                                             </div>
-                                            {flightPaths.length > 1 && <div className="space-y-2">
+                                            {trips.filter(t => t.flight_path).length > 1 && <div className="space-y-2">
                                                 <p className="text-sm text-muted-foreground">Total Distance</p>
                                                 <p className="text-2xl font-bold">
                                                     <DistanceTooltip paths={
-                                                        craft_trips.flatMap(t => t.flight_path ? [t.flight_path] : [])
+                                                        trips.flatMap(t => t.flight_path ? [t.flight_path] : [])
                                                     } />
                                                 </p>
                                             </div>}
                                             <div className="space-y-2">
                                                 <p className="text-sm text-muted-foreground">Total Invoiced Cost</p>
                                                 <p className="text-2xl font-bold">
-                                                    {craft_trips.map(t => t.flight_hours * aircraft.rate).reduce((a, b) => a + b, 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' }).replace(/\.00$/, '')}
+                                                    {trips.map(t => t.flight_hours * aircraft.rate).reduce((a, b) => a + b, 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' }).replace(/\.00$/, '')}
                                                 </p>
                                             </div>
                                         </div>
@@ -150,7 +145,7 @@ export default async function AircraftTripsPage({
                                         </ul>
                                     </div>
                                 </div>
-                                {craft_trips.length == 0 && (
+                                {trips.length == 0 && (
                                     <div className='flex items-baseline bg-primary text-primary-foreground p-4 h-fit rounded shadow cursor-pointer space-x-3 max-w-5xl mx-auto'>
                                         <InfoIcon size={16} />
                                         <span>No recorded trip data is available for this aircraft yet.<br />Please check back again later.</span>
@@ -164,25 +159,23 @@ export default async function AircraftTripsPage({
                 {trips.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <TripActivityChart trips={trips} />
-                        {divisions.length > 0 && <DepartmentUsageChart
+                        <DepartmentUsageChart
                             trips={trips}
-                            type={!(await searchParams).department ? "department" : "division"}
-                        />}
+                            type="department"
+                        />
                     </div>
                 )}
 
-                {flightPaths.length > 1 && (
+                {trips.filter(t => t.flight_path).length > 1 && (
                     <TripsMap trips={trips} aircraft={aircraft} />
                 )}
-                {aircraft.trip_count > 0 && <div>
-                    <TripFilters
-                        aircraft={[aircraft] as FleetMember[]}
-                        departments={departments}
-                        divisions={divisions}
-                        searchParams={await searchParams}
+
+                {aircraft.trip_count > 0 &&
+                    <TripsTable
+                        trips={trips}
+                        aircraft={[aircraft]}
                     />
-                    <TripsTable trips={trips} />
-                </div>}
+                }
             </div>
         </div>
     );

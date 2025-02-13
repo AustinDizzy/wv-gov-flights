@@ -1,7 +1,7 @@
 'use client'
 
 import { ColumnDef } from "@tanstack/react-table"
-import { FleetTrip } from "@/types"
+import type { FleetTrip } from "@/types"
 
 import { AircraftTooltip } from "@/components/aircraft-tooltip"
 import { Button } from "@/components/ui/button"
