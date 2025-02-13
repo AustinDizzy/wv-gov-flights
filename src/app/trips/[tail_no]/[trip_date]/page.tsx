@@ -13,10 +13,8 @@ import { parseNameSlug } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { ExternalLink, InfoIcon } from "lucide-react";
 
-export const dynamic = 'force-dynamic';
-
 export async function generateStaticParams() {
-    return (await getTrips({})).map(({ tail_no, date }) => ({ params: { tail_no, date } }));
+    return (await getTrips({})).map(({ tail_no, date }) => ({ params: { tail_no, trip_date: date } }));
 }
 
 function isRoundTrip(route: string): boolean {

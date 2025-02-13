@@ -19,8 +19,6 @@ import { TripActivityChart } from '@/components/trip-activity-chart';
 import { DepartmentUsageChart } from '@/components/department-usage-chart';
 import { InfoIcon } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
-
 export async function generateStaticParams() {
     const aircraft = await getAircraft() as FleetMember[];
     return aircraft.flatMap(({ tail_no }) => [
