@@ -80,15 +80,14 @@ export async function getPassengers(trips: FleetTrip[]): Promise<Map<string, Fle
 }
 
 export async function getDataSources(trips?: FleetTrip[]): Promise<DataSource[]> {
-    return getDB().then(db => {
-        const datasources = db.prepare(`SELECT * FROM datasources`).all() as DataSource[];
-        const where = trips ? `trip_id IN (?)` : '1=1';
-        const stmt = db.prepare(`SELECT * FROM datasource_trips WHERE ${where}`);
-        const ds_trips = (trips ? stmt.all(trips?.map(t => t.id)) : stmt.all()) as {datasource_id: number, trip_id: number}[];
+    const db = await getDB();
+    const datasources = db.prepare(`SELECT * FROM datasources`).all() as DataSource[];
+    const where = trips ? `trip_id IN (${trips.map(() => '?').join(',')})` : '1=1';
+    const stmt = db.prepare(`SELECT * FROM datasource_trips WHERE ${where}`);
+    const ds_trips = (trips ? stmt.all(...trips.map(t => t.id)) : stmt.all()) as { datasource_id: number, trip_id: number }[];
 
-        return datasources.map(ds => {
-            ds.trips = ds_trips.filter(t => t.datasource_id === ds.id).map(t => trips?.find(trip => trip.id === t.trip_id) as Trip);
-            return ds;
-        });
+    return datasources.map(ds => {
+        ds.trips = ds_trips.filter(t => t.datasource_id === ds.id).map(t => trips?.find(trip => trip.id === t.trip_id) as Trip);
+        return ds;
     });
 }
