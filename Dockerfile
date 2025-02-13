@@ -4,7 +4,6 @@
 FROM node:18-alpine AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV SQL_FILE="data/data.sql"
 ENV CI=true
 
 # Install dependencies
@@ -33,7 +32,6 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
 WORKDIR /app
 ENV NODE_ENV=production
-ENV SQL_FILE="data/data.sql"
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 

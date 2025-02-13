@@ -2,18 +2,18 @@ import Database from 'better-sqlite3';
 import { promises as fs } from 'fs'
 import { Trip, TripSearchParams, FleetMember, FleetTrip, DataSource } from '@/types';
 import { getPax } from '@/lib/utils';
+import path from 'path';
 
 export async function getDB() {
     if (process.env.DB?.endsWith('.sqlite') || process.env.DB?.endsWith('.db')) {
         return new Database(process.env.DB);
-    } else if (process.env.SQL_FILE?.endsWith('.sql')) {
-        const db = new Database(':memory:');
-        const sql = await fs.readFile(process.env.SQL_FILE, 'utf8');
-        db.exec(sql);
-        return db;
-    } else {
-        throw new Error('No DB configured');
     }
+
+    const db = new Database(':memory:');
+    const defaultSqlPath = path.join(process.cwd(), 'data', 'data.sql');
+    db.exec(await fs.readFile(process.env.SQL_FILE || defaultSqlPath, 'utf8'));
+
+    return db;
 }
 
 export async function getAircraft(tail_no?: string): Promise<FleetMember[] | undefined> {
