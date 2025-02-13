@@ -2,7 +2,6 @@
   "name": "wv-gov-flights",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://wv-gov-flights.fly.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AustinDizzy/wv-gov-flights.git"
