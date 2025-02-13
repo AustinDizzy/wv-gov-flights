@@ -7,12 +7,11 @@ import { DurationTooltip } from "@/components/duration-tooltip";
 import { DistanceTooltip } from "@/components/distance-tooltip";
 import { Suspense } from "react";
 
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
-    return (await getTrips({})
-        .then(getPassengers)
-        .then(p => Array.from(p.keys())))
-        .map(parseNameSlug)
-        .map(name => ({ params: { name } }));
+    const passengers = await getTrips({}).then(getPassengers);
+    return Array.from(passengers.keys()).map(parseNameSlug).map(name => ({ name }));
 }
 
 export default async function PassengerPage({
