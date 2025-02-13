@@ -1,26 +1,48 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import * as turf from "@turf/turf"
-import { FleetTrip, TripSearchParams } from '@/types';
+import { FleetTrip, TripSearchParams, PassengerSearchParams } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 export function filterTrips(trips: FleetTrip[], params: TripSearchParams): FleetTrip[] {
-    return trips.filter(trip => {
-        if (params.aircraft && trip.tail_no !== params.aircraft) return false;
-        if (params.department && trip.department !== params.department) return false;
-        if (params.division && trip.division !== params.division) return false;
-        if (params.startDate && trip.date < params.startDate) return false;
-        if (params.endDate && trip.date > params.endDate) return false;
-        if (params.search) {
-            const searchText = `${trip.route} ${trip.passengers} ${trip.department} ${trip.division} ${trip.comments}`.toLowerCase();
-            return searchText.includes(params.search.toLowerCase());
-        }
-        return true;
-    });
+  return trips.filter(trip => {
+    if (params.aircraft && trip.tail_no !== params.aircraft) return false;
+    if (params.department && trip.department !== params.department) return false;
+    if (params.division && trip.division !== params.division) return false;
+    if (params.startDate && trip.date < params.startDate) return false;
+    if (params.endDate && trip.date > params.endDate) return false;
+    if (params.search) {
+      const searchText = `${trip.route} ${trip.passengers} ${trip.department} ${trip.division} ${trip.comments}`.toLowerCase();
+      return searchText.includes(params.search.toLowerCase());
+    }
+    return true;
+  });
 }
+
+export const filterPassengers = (
+  passengers: Map<string, FleetTrip[]>,
+  { search, aircraft, department }: PassengerSearchParams
+): Map<string, FleetTrip[]> => {
+  if (!search && !aircraft && !department) return passengers;
+
+  const filtered = new Map<string, FleetTrip[]>();
+
+  passengers.forEach((trips, passenger) => {
+    if (search && !passenger.toLowerCase().includes(search.toLowerCase())) return;
+
+    const filteredTrips = trips.filter(trip =>
+      (!aircraft || trip.tail_no === aircraft) &&
+      (!department || trip.department === department)
+    );
+
+    if (filteredTrips.length) filtered.set(passenger, filteredTrips);
+  });
+  return filtered;
+};
+
 
 export function isValidDate(dateString: string) {
   return [
@@ -92,10 +114,10 @@ export function calcDistance(lines: string[], units: "nauticalmiles" | "kilomete
 export function getPax(passengers?: string): string[] {
   if (!passengers) return [];
   return passengers.split(',')
-  .map(p => p.trim())
-  .map(p => p.split(/;(?=(?:[^()]*\([^()]*\))*[^()]*$)/))
-  .flat()
-  .map(p => p.trim());
+    .map(p => p.trim())
+    .map(p => p.split(/;(?=(?:[^()]*\([^()]*\))*[^()]*$)/))
+    .flat()
+    .map(p => p.trim());
 }
 
 export function getPaxMap(passengers?: string): Record<string, string> {

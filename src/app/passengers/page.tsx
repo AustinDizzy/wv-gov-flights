@@ -1,22 +1,20 @@
-import { getPassengers, getTrips } from "@/lib/db";
-import type { TripSearchParams } from "@/types";
-import { PassengerTable } from "@/app/passengers/passengers-table";
-import { Suspense } from "react";
+import { getPassengers, getTrips, getAircraft } from "@/lib/db";
+import { PassengersTable } from "./passengers-table";
 
-export default async function PassengersPage({searchParams}: {
-    searchParams: Promise<TripSearchParams>
-}) {
-    const params = await searchParams;
-    const passengers = await getTrips(params).then(getPassengers);
+export default async function PassengersPage() {
+    const [passengers, aircraft] = await Promise.all([
+        getTrips({}).then(getPassengers),
+        getAircraft(),
+    ]);
 
     return (
         <div className="space-y-6 p-6">
             <div className="mx-auto">
-                <h2 className="font-semibold text-xl mb-2">Passengers</h2>
-                <Suspense>
-                    <PassengerTable passengers={passengers} />
-                </Suspense>
+                <PassengersTable
+                    passengers={passengers}
+                    aircraft={aircraft || []}
+                />
             </div>
         </div>
-    )
+    );
 }

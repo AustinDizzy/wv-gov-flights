@@ -51,6 +51,12 @@ export interface TripSearchParams {
     endDate?: string;
 }
 
+export interface PassengerSearchParams {
+    search?: string;
+    aircraft?: string;
+    department?: string;
+}
+
 export interface FleetMemberContent {
     image: string;
     resources: { [key: string]: string };

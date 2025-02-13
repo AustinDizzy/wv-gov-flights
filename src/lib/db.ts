@@ -26,20 +26,20 @@ export async function getAircraft(tail_no?: string): Promise<FleetMember[] | und
         WHERE ${tail_no ? 'UPPER(a.tail_no) = ?' : '1=1'}
         GROUP BY a.tail_no
     `)).then(stmt => tail_no ? [stmt.get(tail_no.toUpperCase())] : stmt.all())
-    .then(aircraft => {
-        const p = (a: FleetMember) => {
-            if (a.content && a.content.length > 0) {
-                try {
-                    a.content_json = JSON.parse(a.content);
-                } catch (e) {
-                    console.error(`Invalid JSON in content for aircraft ${a.tail_no}:`, e);
-                    a.content_json = undefined;
+        .then(aircraft => {
+            const p = (a: FleetMember) => {
+                if (a.content && a.content.length > 0) {
+                    try {
+                        a.content_json = JSON.parse(a.content);
+                    } catch (e) {
+                        console.error(`Invalid JSON in content for aircraft ${a.tail_no}:`, e);
+                        a.content_json = undefined;
+                    }
                 }
+                return a;
             }
-            return a;
-        }
-        return aircraft.filter((a): a is FleetMember => a !== undefined).map(p);
-    });
+            return aircraft.filter((a): a is FleetMember => a !== undefined).map(p);
+        });
 }
 
 export async function getTrips(searchParams: TripSearchParams): Promise<FleetTrip[]> {
