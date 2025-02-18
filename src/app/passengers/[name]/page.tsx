@@ -6,27 +6,42 @@ import { Card } from "@/components/ui/card";
 import { DurationTooltip } from "@/components/duration-tooltip";
 import { DistanceTooltip } from "@/components/distance-tooltip";
 import { Suspense } from "react";
+import { FleetTrip } from "@/types";
 
 export const dynamicParams = false;
+
+interface PassengerPageProps {
+    params: Promise<{ name: string }>;
+}
+
+async function getPassenger(name: string): Promise<[string, string, FleetTrip[]]> {
+    const trips = await getTrips({}).then(trips => trips.filter(trip => hasPax(trip.passengers, name)));
+    return [
+        name,
+        getPaxMap(trips[0]?.passengers)[name],
+        trips,
+    ]
+}
 
 export async function generateStaticParams() {
     const passengers = await getTrips({}).then(getPassengers);
     return Array.from(passengers.keys()).map(parseNameSlug).map(name => ({ name }));
 }
 
-export default async function PassengerPage({
-    params
-}: {
-    params: Promise<{ name: string }>;
-}) {
-    const pax_name = (await params).name;
-    const trips = await getTrips({}).then(trips => trips.filter(trip => hasPax(trip.passengers, pax_name)));
-    const passenger = getPaxMap(trips[0]?.passengers)[pax_name];
+export async function generateMetadata({ params }: PassengerPageProps) {
+    const [ , passenger, trips ] = await getPassenger((await params).name);
+    return {
+        title: `${passenger} | Passengers on WV State Aircraft `,
+        description: `${trips.length} trips by ${passenger} on WV State aircraft`
+    };
+}
+
+export default async function PassengerPage({ params }: PassengerPageProps) {
+    const [, passenger, trips] = await getPassenger((await params).name);
 
     if (trips.length === 0) notFound();
 
     const flightPaths = trips.flatMap(t => t.flight_path ? [t.flight_path] : []);
-
     const totalHours = trips.reduce((acc, trip) => acc + trip.flight_hours, 0)
 
     return (

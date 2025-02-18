@@ -10,24 +10,61 @@ import { notFound } from "next/navigation";
 import { format, parse } from "date-fns";
 import Link from "next/link";
 import { parseNameSlug } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { cn, getEmoji } from "@/lib/utils";
+import type { FleetTrip, FleetMember } from "@/types";
 import { ExternalLink, InfoIcon } from "lucide-react";
 
 export const dynamicParams = false;
+
+interface AircraftTripDatePageProps {
+    params: Promise<{ tail_no: string; trip_date: string }>;
+}
 
 export async function generateStaticParams() {
     return (await getTrips({})).map(({ tail_no, date }) => ({ tail_no, trip_date: date }));
 }
 
-export async function generateMetadata(props: { params: Promise<{ tail_no: string, trip_date: string }> }) {
-    const params = await props.params;
-    const aircraft = await getAircraft(params.tail_no).then(a => a?.pop());
-    if (!aircraft) return notFound();
-    return { title: `${aircraft.tail_no} - Trip on ${params.trip_date}` };
+export async function generateMetadata({ params }: AircraftTripDatePageProps) {
+    const { tail_no, trip_date } = await params;
+    const { trips, aircraft } = await getAircraftTrips(tail_no, trip_date);
+
+    if (!aircraft || trips.length == 0) return notFound();
+
+    return {
+        title: [aircraft.tail_no, 'on', formatTripDate((await params).trip_date)].join(' '),
+        description: `${getEmoji(aircraft)} ${aircraft.tail_no} took ` + (trips.length > 1 ?
+            (trips.length + " trips totaling " + trips.map(t => t.flight_hours).reduce((a, b) => a + b, 0) + " flight hours on " + formatTripDate(trip_date)) :
+            (
+                trips[0].passengers ? (
+                    trips[0].pax.length + " passengers" + (isRoundTrip(trips[0].route) ? " on a round trip" : "") + " from " + formatRouteStr(trips[0].route)
+                ) : (
+                    "flight for " + trips[0].flight_hours + " hours" + (isRoundTrip(trips[0].route) ? " on a round trip" : "") + " from " + formatRouteStr(trips[0].route)
+                )
+            )
+        )
+    }
+}
+
+async function getAircraftTrips(tail_no: string, trip_date: string): Promise<{trips: FleetTrip[], aircraft: FleetMember}> {
+    const [trips, aircraft] = await Promise.all([
+        getTrips({
+            aircraft: tail_no,
+            startDate: trip_date,
+            endDate: trip_date,
+        }),
+        getAircraft(tail_no).then(a => a?.pop() as FleetMember),
+    ]);
+
+    return { trips, aircraft };
+
 }
 
 function isRoundTrip(route: string): boolean {
     return route.split("-").every((p, i, a) => p === a[a.length - 1 - i])
+}
+
+function formatTripDate(trip_date: string): string {
+    return format(parse(trip_date, "yyyy-MM-dd", new Date()), "MMMM d, yyyy");
 }
 
 function formatRouteStr(route: string): string {
@@ -44,20 +81,9 @@ function formatRouteStr(route: string): string {
     }
 }
 
-export default async function AircraftTripDatePage({
-    params,
-}: {
-    params: Promise<{ tail_no: string; trip_date: string }>;
-}) {
+export default async function AircraftTripDatePage({ params }: AircraftTripDatePageProps) {
     const searchParams = (await params) as Record<string, string>;
-    const [trips, aircraft] = await Promise.all([
-        getTrips({
-            aircraft: searchParams.tail_no,
-            startDate: searchParams.trip_date,
-            endDate: searchParams.trip_date,
-        }),
-        getAircraft(searchParams.tail_no).then(a => a?.pop()),
-    ]);
+    const { trips, aircraft } = await getAircraftTrips(searchParams.tail_no, searchParams.trip_date);
 
     // throw 404 if no trips or aircraft
     if (!trips.length || !aircraft) {
@@ -75,7 +101,7 @@ export default async function AircraftTripDatePage({
                 <h1 className="text-3xl font-bold tracking-tight flex flex-col md:flex-row items-center gap-2">
                     <AircraftTooltip aircraft={aircraft} variant="title" />{" "}
                     <span className="font-semibold text-2xl hidden md:inline-block">on</span>{" "}
-                    {format(parse(searchParams.trip_date, "yyyy-MM-dd", new Date()), "MMMM dd, yyyy")}
+                    {formatTripDate(searchParams.trip_date)}
                 </h1>
 
                 {flightPath && (

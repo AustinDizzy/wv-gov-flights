@@ -15,6 +15,10 @@ import Image from 'next/image';
 
 export const dynamicParams = false;
 
+interface AircraftTripsPageProps {
+    params: Promise<{ tail_no: string, aircraft_trips: string }>;
+}
+
 export async function generateStaticParams() {
     const aircraft = await getAircraft() as FleetMember[];
     return aircraft.flatMap(({ tail_no }) => [
@@ -23,22 +27,17 @@ export async function generateStaticParams() {
     ]);
 }
 
-export async function generateMetadata(props: { params: Promise<{ tail_no: string }> }) {
-    const params = await props.params;
-    const aircraft = await getAircraft(params.tail_no).then(a => a?.pop());
+export async function generateMetadata({ params }: AircraftTripsPageProps) {
+    const aircraft = await getAircraft((await params).tail_no).then(a => a?.pop());
     if (!aircraft) return notFound();
-    return { title: `${aircraft.tail_no} - ${aircraft.name}` };
+    return {
+        title: [getEmoji(aircraft), aircraft.tail_no, '-', aircraft.name].join(' ')
+    }
 }
 
-export default async function AircraftTripsPage(
-    props: {
-        params: Promise<{ tail_no: string, aircraft_trips: string }>;
-    }
-) {
-    const params = await props.params;
-    if (!['aircraft', 'trips'].includes(params.aircraft_trips)) notFound();
-
-    const tail_no = params.tail_no;
+export default async function AircraftTripsPage({ params }: AircraftTripsPageProps) {
+    const { tail_no, aircraft_trips } = await params;
+    if (!['aircraft', 'trips'].includes(aircraft_trips)) notFound();
     const aircraft = await getAircraft(tail_no).then(a => a?.pop()) as FleetMember;
 
     const [trips] = await Promise.all([
@@ -48,7 +47,7 @@ export default async function AircraftTripsPage(
     return (
         <div className='container mx-auto space-y-6 p-2 md:p-6'>
             <div className="space-y-6" key={['trips', aircraft.tail_no].join('/')}>
-                {params.aircraft_trips === 'aircraft' && (
+                {aircraft_trips === 'aircraft' && (
                     <>
                         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-4">
                             <Badge variant={aircraft.type === "airplane" ? "secondary" : "default"}

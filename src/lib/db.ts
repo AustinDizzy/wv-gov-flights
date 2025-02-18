@@ -16,7 +16,7 @@ export async function getDB() {
     return db;
 }
 
-export async function getAircraft(tail_no?: string): Promise<FleetMember[] | undefined> {
+export async function getAircraft(tail_no?: string): Promise<FleetMember[]> {
     return getDB().then(db => db.prepare(`
         SELECT
             a.*,
