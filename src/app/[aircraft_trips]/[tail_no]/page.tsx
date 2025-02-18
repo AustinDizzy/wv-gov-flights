@@ -1,7 +1,7 @@
 import { getTrips, getAircraft } from '@/lib/db';
 import { TripsTable } from '@/app/trips/trips-table';
 import type { FleetMember } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, getEmoji } from '@/lib/utils';
 import TripsMap from '@/components/TripsMap/TripsMap';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -53,7 +53,7 @@ export default async function AircraftTripsPage(
                         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-4">
                             <Badge variant={aircraft.type === "airplane" ? "secondary" : "default"}
                                 className="text-lg px-4 py-2">
-                                {aircraft.tail_no} {aircraft.type === "airplane" ? "✈️" : "🚁"}
+                                {aircraft.tail_no} {getEmoji(aircraft)}
                             </Badge> {aircraft.name}
                         </h1>
                         <Card className='flex flex-col md:flex-row shadow-md'>

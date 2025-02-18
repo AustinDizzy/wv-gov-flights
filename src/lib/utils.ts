@@ -1,10 +1,14 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import * as turf from "@turf/turf"
-import { FleetTrip, TripSearchParams, PassengerSearchParams } from '@/types';
+import { FleetTrip, TripSearchParams, PassengerSearchParams, Aircraft } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+export function getEmoji(aircraft: Aircraft): string {
+  return aircraft.type === "airplane" ? "✈️" : "🚁";
 }
 
 export function filterTrips(trips: FleetTrip[], params: TripSearchParams): FleetTrip[] {
