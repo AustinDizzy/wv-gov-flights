@@ -16,7 +16,7 @@ export const Footer: React.FC = () => {
                         <Mail size={12} className='inline' />~abs/wv-gov-flights@lists.sr.ht
                     </Link>
                     <Link href="https://github.com/AustinDizzy/wv-gov-flights" className='hover:text-primary hover:underline text-muted-foreground/50 font-mono flex gap-1 items-center' target='nofollow noopener'>
-                        <Github size={12} className='inline' />AustinDizzy/wv-gov-flights
+                        <Github size={12} className='inline' />wv-gov-flights
                     </Link>
                     </div>
                     <ModeToggle />
