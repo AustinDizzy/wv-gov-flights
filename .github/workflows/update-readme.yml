@@ -1,0 +1,48 @@
+name: Update stats in README.md
+
+on:
+  push:
+    paths:
+      - 'data/data.sql'
+    branches:
+      - main
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install SQLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install sqlite3
+
+      - name: Create temporary database
+        run: |
+          sqlite3 data/temp.db < data/data.sql
+          
+      - name: Update README
+        run: node scripts/update-readme.js data/temp.db
+        
+      - name: Clean up temporary database
+        run: rm data/temp.db
+        
+      - name: Commit changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add README.md
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update README stats [skip ci]"
+          
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}

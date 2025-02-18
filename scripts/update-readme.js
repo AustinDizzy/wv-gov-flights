@@ -1,7 +1,7 @@
 const {execSync} = require('child_process');
 const fs = require('fs');
 
-const [,, dbPath='data/data.db'] = process.argv;
+const [,, dbPath='data/temp.db'] = process.argv;
 
 try {
   const [count, first, last, hours] = execSync(`sqlite3 ${dbPath} "SELECT COUNT(*),MIN(date),MAX(date),ROUND(SUM(flight_hours),1) FROM trips;"`).toString().trim().split('|');
