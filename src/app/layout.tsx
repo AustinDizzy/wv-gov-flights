@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/components/ui/theme-provider'
 import { cn } from '@/lib/utils'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
+import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,19 +21,24 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn(inter.className, 'min-h-screen bg-background')}>
-        <ThemeProvider 
-          attribute="class" 
-          defaultTheme="system" 
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar aircraft={['N1WV','N2WV','N3WV','N5WV','N6WV','N890SP','N895SP']} />
+          <Navbar aircraft={['N1WV', 'N2WV', 'N3WV', 'N5WV', 'N6WV', 'N890SP', 'N895SP']} />
           <main className="container mx-auto py-4">
             {children}
           </main>
           <Footer />
         </ThemeProvider>
       </body>
+      <Script
+        src="https://tr.absec.org/script.js"
+        data-website-id="a8b46f33-07d5-45c5-bb74-66152ef73b6c"
+        strategy="afterInteractive"
+      />
     </html>
   )
 }
