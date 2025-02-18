@@ -90,6 +90,12 @@
   }
 }
 
+@media (max-width: 768px) {
+  th:has(.hidden) {
+    display: none;
+  }
+}
+
 .leaflet-layer:not(.leaflet-heatmap-layer) {
   filter: grayscale(100%) hue-rotate(180deg) brightness(100%);
 }

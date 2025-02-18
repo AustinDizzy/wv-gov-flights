@@ -38,8 +38,9 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination"
-import { cn } from "@/lib/utils"
-import { ArrowDownIcon, ArrowUpIcon } from "lucide-react"
+import { AircraftTooltip } from "@/components/aircraft-tooltip"
+import { cn, formatDuration } from "@/lib/utils"
+import { ArrowDownIcon, ArrowUpIcon, Timer } from "lucide-react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
@@ -137,7 +138,11 @@ export function TripsDataTable({ trips }: {
                                             <div
                                                 className={cn(
                                                     "flex items-center space-x-2 font-semibold",
-                                                    header.column.getCanSort() && "cursor-pointer select-none justify-center"
+                                                    header.column.getCanSort() && "cursor-pointer select-none justify-center",
+                                                    {
+                                                        "hidden md:table-header-group": ["department", "flight_hours", "tail_no"].includes(header.column.id),
+                                                        "table-header-group": !["department", "flight_hours", "tail_no"].includes(header.column.id)
+                                                    }
                                                 )}
                                                 onClick={header.column.getToggleSortingHandler()}
                                             >
@@ -164,18 +169,40 @@ export function TripsDataTable({ trips }: {
                                     data-state={row.getIsSelected() && "selected"}
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell key={cell.id} className={cn({
+                                            "hidden md:table-cell": ["department", "flight_hours", "tail_no"].includes(cell.column.id),
+                                            "table-cell": !["department", "flight_hours", "tail_no"].includes(cell.column.id)
+                                        })}>
                                             {cell.column.id === "route" ? (
-                                                <Link
-                                                    href={`/trips/${row.original.tail_no}/${row.original.date}`}
-                                                    className="block -mx-4 px-4 py-2 hover:bg-muted/50 transition-colors"
-                                                    prefetch={false}
-                                                >
-                                                    {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
-                                                    )}
-                                                </Link>
+                                                <div className="flex flex-col">
+                                                    <Link
+                                                        href={`/trips/${row.original.tail_no}/${row.original.date}`}
+                                                        className="block -mx-4 px-4 py-2 hover:bg-muted/50 transition-colors"
+                                                        prefetch={false}
+                                                        >
+                                                        <div className="md:hidden flex-col">
+                                                            <AircraftTooltip aircraft={row.original.aircraft} />
+                                                        </div>
+                                                        {flexRender(
+                                                            cell.column.columnDef.cell,
+                                                            cell.getContext()
+                                                        )}
+                                                    </Link>
+                                                    <div className="flex md:hidden flex-row justify-between mt-2">
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {row.original.department}
+                                                            {row.original.division && (
+                                                                <small className="block">{row.original.division}</small>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-sm text-muted-foreground mt-2 md:mt-0">
+                                                            <span className="flex items-center">
+                                                                <Timer className="h-4 w-4 mr-1" />
+                                                                {formatDuration(row.original.flight_hours)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             ) : (
                                                 flexRender(
                                                     cell.column.columnDef.cell,
@@ -316,15 +343,3 @@ export function TripsDataTable({ trips }: {
       </Card>
     )
 }
-
-
-
-//   return (
-    
-//       <DataTable
-//         columns={columns}
-//         data={trips}
-//       />
-    
-//   )
-// }

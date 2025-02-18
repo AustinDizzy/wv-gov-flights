@@ -15,17 +15,17 @@ export function Navbar({ aircraft }: {
 }) {
     return (
         <div className="border-b py-4 relative z-50">
-            <div className="flex flex-col md:flex-row gap-4 px-4 container mx-auto">
-                <Link className="flex flex-col md:flex-row items-center gap-4 relative h-fit mx-auto md:mx-0" href="/">
+            <div className="flex flex-col lg:flex-row gap-4 px-4 container mx-auto">
+                <Link className="flex flex-col sm:flex-row items-center gap-4 relative h-fit mx-auto lg:mx-0" href="/">
                     <Image src="/logo.png" alt="logo" width={148} height={148} className="pb-2" />
-                    <div className="text-center md:text-left">
+                    <div className="text-center lg:text-left">
                         <h1 className="block text-3xl font-medium">Golden Dome Airways</h1>
-                        <p className="text-muted-foreground italic flex items-center gap-1 justify-center md:justify-start">
+                        <p className="text-muted-foreground italic flex items-center gap-1 justify-center lg:justify-start">
                             <small>(unofficial)</small> flight logs for State of WV aircraft
                         </p>
                     </div>
                 </Link>
-                <NavigationMenu className="xs:mx-auto md:ml-auto">
+                <NavigationMenu className="mx-auto lg:mr-0">
                     <NavigationMenuList className="gap-6">
                         <NavigationMenuItem className="hidden md:block">
                             <Link href="/" legacyBehavior passHref>
