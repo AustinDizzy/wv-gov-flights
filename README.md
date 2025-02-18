@@ -1,10 +1,12 @@
 # wv-gov-flights 🏛️🛩️
 
-a website built with [Next.js](https://nextjs.org) to display trip, passenger, and invoice data in an enriched way -- with support for basic text searches and recorded flight path visualizations -- for aircraft owned & operated by the State of West Virignia via the [State Aviation Division](https://aviation.wv.gov)
+a website (built w/ [Next.js (v15)](https://nextjs.org/)) to display trip, passenger, and invoice data from a [SQLite(3)](https://www.sqlite.org/) database in an enriched way -- with support for basic text searches and recorded flight path visualizations using [Leaflet](https://leafletjs.com/) -- of aircraft owned & operated by the [State of West Virginia's Aviation Division](https://aviation.wv.gov)
+
+https://wv-gov-flights.pages.dev
 
 ### Questions & Comments
 
-See the [Frequently Asked Questions](https://github.com/AustinDizzy/wv-gov-flights/wiki/Frequently-Asked-Questions) in the repo wiki. Public questions & comments also available via email mailing list at `~abs/wv-gov-flights@lists.sr.ht`.
+See the [Frequently Asked Questions](https://github.com/AustinDizzy/wv-gov-flights/wiki/Frequently-Asked-Questions) in the repo wiki. Public questions & comments also available via email mailing list at [`~abs/wv-gov-flights@lists.sr.ht`](https://lists.sr.ht/~abs/wv-gov-flights).
 
 ## Data
 
