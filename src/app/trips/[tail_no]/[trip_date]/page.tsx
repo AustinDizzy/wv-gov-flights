@@ -118,9 +118,11 @@ export default async function AircraftTripDatePage({ params }: AircraftTripDateP
                 )}
 
                 {trips.map((trip, i) => (
-                    <Card key={trip.id} className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+                    <Card key={trip.id} id={trip.id.toString()} className="card grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
                         <h1 className="text-2xl md:text-justify text-center font-semibold col-span-full">
-                            {trips.length > 1 && <span className="text-sm text-muted-foreground font-mono font-light">#{i}.</span>}
+                            {trips.length > 1 && (
+                                <a className="text-sm text-muted-foreground font-mono font-light" href={`#${trip.id}`}>#{i}.</a>
+                            )}
                             <div className="inline-flex flex-col md:flex-row items-center gap-2">
                                 {formatRouteStr(trip.route)}{" "}{isRoundTrip(trip.route) && <span className="text-muted-foreground text-base whitespace-nowrap">(round trip)</span>}
                             </div>

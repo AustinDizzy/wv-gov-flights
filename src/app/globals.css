@@ -116,7 +116,6 @@
     filter: drop-shadow(0 0 4px hsl(var(--secondary) / 0.5));
 }
 
-/* Make tooltips match the theme */
 .leaflet-tooltip {
     @apply bg-background border-border text-foreground shadow-md mr-4;
 }
@@ -127,4 +126,8 @@
 
 .selected-tooltip::before {
     border-top-color: hsl(var(--primary)) !important;
+}
+
+[id].card:target {
+    @apply ring-2 ring-secondary ring-opacity-50;
 }
