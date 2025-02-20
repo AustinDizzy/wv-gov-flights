@@ -4,6 +4,11 @@ a website (built w/ [Next.js (v15)](https://nextjs.org/)) to display trip, passe
 
 https://wv-gov-flights.pages.dev
 
+### License
+![Creative Commons Zero v1.0](https://licensebuttons.net/p/zero/1.0/88x15.png)
+
+This project is released into the public domain via Creative Commons Zero. See the [LICENSE](./LICENSE) file.
+
 ### Questions & Comments
 
 See the [Frequently Asked Questions](https://github.com/AustinDizzy/wv-gov-flights/wiki/Frequently-Asked-Questions) in the repo wiki. Public questions & comments also available via email mailing list at [`~abs/wv-gov-flights@lists.sr.ht`](https://lists.sr.ht/~abs/wv-gov-flights).

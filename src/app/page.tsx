@@ -16,9 +16,9 @@ export default async function Home() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="grid gap-8 md:grid-cols-2">
-        <div>
-          <p className="mr-4">
+      <div className="grid gap-8 lg:grid-cols-2">
+        <div className="mr-4 space-y-8">
+          <p>
             The <a href="https://www.wv.gov" target="nofollow noopener" className="text-primary underline">State of West Virginia</a> owns and operates a fleet of aircraft with its <a href="https://aviation.wv.gov" target="nofollow noopener" className="text-primary underline">State Aviation Division</a>. This site provides a way to search & discover the use of these aircraft, including the passengers, routes, departments, flight paths, and justifications.
             <br /><br />
             This website currently has data on{" "}
@@ -30,6 +30,13 @@ export default async function Home() {
             {totalPax.toLocaleString()} passengers
             </Link>{" "} recorded traveling over{" "}
             <DistanceTooltip paths={flightPaths} variant="long" />.
+          </p>
+          <p className="text-sm">
+            Source code for this project is available <a href="https://github.com/AustinDizzy/wv-gov-flights" target="nofollow noopener" className="text-primary underline">on GitHub</a> under the <a href="https://creativecommons.org/publicdomain/zero/1.0/legalcode" target="nofollow noopener" className="text-primary underline">Creative Commons Zero (Public Domain)</a> license.
+            <br /><br />
+            See the <a href="https://github.com/AustinDizzy/wv-gov-flights/wiki/Frequently-Asked-Questions" target="nofollow noopener" className="text-primary underline">Frequently Asked Questions page</a> in the project wiki for more information.
+            {" "}
+            Please report any errors or issues to the <a href="https://github.com/AustinDizzy/wv-gov-flights" target="nofollow noopener" className="text-primary underline">GitHub issues tracker</a>, or by sending an email to the mailing list at <a href="https://lists.sr.ht/~abs/wv-gov-flights" target="nofollow noopener" className="text-primary underline">~abs/wv-gov-flights@lists.sr.ht</a>
           </p>
         </div>
         <div>
