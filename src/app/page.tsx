@@ -33,10 +33,8 @@ export default async function Home() {
           </p>
           <p className="text-sm">
             Source code for this project is available <a href="https://github.com/AustinDizzy/wv-gov-flights" target="nofollow noopener" className="text-primary underline">on GitHub</a> under the <a href="https://creativecommons.org/publicdomain/zero/1.0/legalcode" target="nofollow noopener" className="text-primary underline">Creative Commons Zero (Public Domain)</a> license.
-            <br /><br />
-            See the <a href="https://github.com/AustinDizzy/wv-gov-flights/wiki/Frequently-Asked-Questions" target="nofollow noopener" className="text-primary underline">Frequently Asked Questions page</a> in the project wiki for more information.
             {" "}
-            Please report any errors or issues to the <a href="https://github.com/AustinDizzy/wv-gov-flights" target="nofollow noopener" className="text-primary underline">GitHub issues tracker</a>, or by sending an email to the mailing list at <a href="https://lists.sr.ht/~abs/wv-gov-flights" target="nofollow noopener" className="text-primary underline">~abs/wv-gov-flights@lists.sr.ht</a>
+            See the <a href="https://github.com/AustinDizzy/wv-gov-flights/wiki/Frequently-Asked-Questions" target="nofollow noopener" className="text-primary underline">Frequently Asked Questions page</a> in the project wiki for more information.
           </p>
         </div>
         <div>
