@@ -105,7 +105,7 @@ export default async function AircraftTripDatePage({ params }: AircraftTripDateP
                 </h1>
 
                 {flightPath && (
-                    <div>
+                    <div className="space-y-2">
                         <Card className="p-4">
                             <Map
                                 flightPath={flightPath}
@@ -114,6 +114,10 @@ export default async function AircraftTripDatePage({ params }: AircraftTripDateP
                                 flightCraft={aircraft}
                             />
                         </Card>
+                        <div className="text-xs text-muted md:justify-end justify-center cursor-pointer flex items-center">
+                            <InfoIcon size={12} className="mr-2" />
+                            recorded flight path data could be partial or incomplete
+                        </div>
                     </div>
                 )}
 
