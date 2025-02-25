@@ -68,8 +68,7 @@ export function AircraftTable({ fleet }: {
         </Card>
         <div className="text-xs text-muted-foreground/50 flex items-center justify-end cursor-pointer mt-2">
             <Info size={12} className="inline mr-1" />
-            N2WV was decommissioned in 2021.{" "}
-            Data collection for N890SP & N895SP is in-progress.
+            N2WV was decommissioned in 2021.
         </div>
         </>
     )
