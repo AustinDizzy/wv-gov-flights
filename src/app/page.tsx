@@ -1,7 +1,6 @@
 import { getAircraft, getPassengers, getTrips } from "@/lib/db";
 import type { FleetMember, FleetTrip } from "@/types";
 import { AircraftTable } from '@/app/aircraft/aircraft-table';
-import { DurationTooltip } from "@/components/duration-tooltip";
 import { DistanceTooltip } from "@/components/distance-tooltip";
 import Link from "next/link";
 
@@ -9,6 +8,7 @@ export default async function Home() {
   const aircraft = await getAircraft() as FleetMember[]
   const trips = await getTrips({}) as FleetTrip[]
 
+  const totalFlights = trips.map(t => t.route).reduce((a, b) => a+(b.split(/-| to /).length - 1), 0)
   const totalPax = (await getPassengers(trips)).size
   const flightPaths = trips.flatMap(t => t.flight_path ? [t.flight_path] : [])
 
@@ -24,8 +24,8 @@ export default async function Home() {
             This website currently has data on{" "}
             <Link href="/trips" className="text-primary underline">
             {trips.length.toLocaleString()} trips
-            </Link> totaling{" "}
-            <DurationTooltip duration={totalHours} variant="long" />, with{" "}
+            </Link> ({totalFlights.toLocaleString()} flights) totaling{" "}
+            {totalHours.toLocaleString()} flight hours, with{" "}
             <Link href="/passengers" className="text-primary underline whitespace-nowrap">
             {totalPax.toLocaleString()} passengers
             </Link>{" "} recorded traveling over{" "}
