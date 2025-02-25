@@ -32,7 +32,9 @@ export async function generateMetadata({ params }: AircraftTripDatePageProps) {
 
     return {
         title: [aircraft.tail_no, 'on', formatTripDate((await params).trip_date)].join(' '),
-        description: `${getEmoji(aircraft)} ${aircraft.tail_no} took ` + (trips.length > 1 ?
+        description: trips[0].unknown ?
+            `${getEmoji(aircraft)} ${aircraft.tail_no} recorded flight on ${formatTripDate(trip_date)}` :
+            `${getEmoji(aircraft)} ${aircraft.tail_no} took ` + (trips.length > 1 ?
             (trips.length + " trips totaling " + trips.map(t => t.flight_hours).reduce((a, b) => a + b, 0) + " flight hours on " + formatTripDate(trip_date)) :
             (
                 trips[0].passengers ? (
@@ -122,18 +124,22 @@ export default async function AircraftTripDatePage({ params }: AircraftTripDateP
                 )}
 
                 {trips.map((trip, i) => (
-                    <Card key={trip.id} id={trip.id.toString()} className="card grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-                        <h1 className="text-2xl md:text-justify text-center font-semibold col-span-full">
-                            {trips.length > 1 && (
-                                <a className="text-sm text-muted-foreground font-mono font-light" href={`#${trip.id}`}>#{i}.</a>
+                    <Card key={trip.id || `unknown-${i}`} id={trip.id?.toString()} className="card grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+                        {(trip.route.replaceAll("-","").length > 0) && <h1 className="text-2xl md:text-justify text-center font-semibold col-span-full">
+                            {trip.unknown ? trip.route : (
+                                <>
+                                    {trips.length > 1 && (
+                                        <a className="text-sm text-muted-foreground font-mono font-light" href={`#${trip.id}`}>#{i}.</a>
+                                    )}
+                                    <div className="inline-flex flex-col md:flex-row items-center gap-2">
+                                        {formatRouteStr(trip.route)}{" "}{isRoundTrip(trip.route) && <span className="text-muted-foreground text-base whitespace-nowrap">(round trip)</span>}
+                                    </div>
+                                </>
                             )}
-                            <div className="inline-flex flex-col md:flex-row items-center gap-2">
-                                {formatRouteStr(trip.route)}{" "}{isRoundTrip(trip.route) && <span className="text-muted-foreground text-base whitespace-nowrap">(round trip)</span>}
-                            </div>
-                        </h1>
+                        </h1>}
                         <Card className="p-6">
                             <dl className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                {!trip.unknown && <div className="grid grid-cols-2 gap-4">
                                     <div className={cn(!trip.division && "col-span-2")}>
                                         <dt className="text-sm text-muted-foreground">Department</dt>
                                         <dd className="text-lg font-medium">{trip.department}</dd>
@@ -142,7 +148,7 @@ export default async function AircraftTripDatePage({ params }: AircraftTripDateP
                                         <dt className="text-sm text-muted-foreground">Division</dt>
                                         <dd className="text-lg font-medium">{trip.division}</dd>
                                     </div>}
-                                </div>
+                                </div>}
                                 {trip.passengers && <div>
                                     <dt className="text-sm text-muted-foreground">Passengers</dt>
                                     <dd className="text-lg" key={trip.passengers}>
@@ -162,15 +168,35 @@ export default async function AircraftTripDatePage({ params }: AircraftTripDateP
                                         <dd className="text-lg font-medium">{trip.flight_hours}</dd>
                                     </div>
                                     <div>
-                                        <dt className="text-sm text-muted-foreground">Invoiced Amount</dt>
-                                        <dd className="text-lg font-medium">${(trip.flight_hours * trip.aircraft.rate).toLocaleString()}</dd>
+                                        <dt className="text-sm text-muted-foreground">{trip.unknown ? 'Approx. Invoice' :'Invoiced Amount'}</dt>
+                                        <dd className="text-lg font-medium">{trip.unknown && '~'}${(trip.flight_hours * trip.aircraft.rate).toLocaleString()}</dd>
                                     </div>
                                 </div>
                             </dl>
                         </Card>
 
                         <div className="space-y-6">
-                            <Card className="relative pt-4">
+                            {trip.unknown && <Card className="relative bg-muted">
+                                <div className="col-span-full">
+                                    <div className="rounded-md p-4">
+                                        <div className="flex">
+                                            <div className="flex-shrink-0">
+                                                <InfoIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                                            </div>
+                                            <div className="ml-3">
+                                                <h3 className="text-sm font-medium text-muted-foreground">Limited Flight Data</h3>
+                                                <div className="mt-2 text-sm text-muted-foreground">
+                                                    <p>
+                                                        We have recorded flight path data for this date, but haven't received the trip details from the State Aviation Division.
+                                                        Check back later for updates.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>}
+                            {!trip.unknown && <Card className="relative pt-4">
                                 <span className="absolute -top-3 left-4 px-2 text-sm font-semibold bg-card">
                                     Comments
                                 </span>
@@ -181,7 +207,7 @@ export default async function AircraftTripDatePage({ params }: AircraftTripDateP
                                         </div>
                                     )}
                                 </div>
-                            </Card>
+                            </Card>}
 
                             {trip.justification_lwb && <Card className="relative pt-4">
                                 <span className="absolute -top-3 left-4 px-2 text-sm font-semibold bg-card">
@@ -223,7 +249,7 @@ export default async function AircraftTripDatePage({ params }: AircraftTripDateP
                 ))}
 
                 {!flightPath && (
-                    <Card className="p-4">
+                    <Card className="p-4 bg-muted">
                         <div className="text-sm text-muted-foreground flex items-baseline gap-1">
                             <InfoIcon size={12} />
                             No recorded flight paths were found on this date.{" "}

@@ -11,7 +11,7 @@ export interface Aircraft {
 }
 
 export interface Trip {
-    id: number
+    id: number | undefined
     date: string
     tail_no: string
     route: string
@@ -40,6 +40,7 @@ export interface FleetTrip extends Trip {
     pax: string[];
     invoiced_cost: number;
     source?: DataSource;
+    unknown?: boolean;
 }
 
 export interface TripSearchParams {
@@ -65,4 +66,14 @@ export interface FleetMemberContent {
 export interface FleetMember extends Aircraft {
     trip_count: number;
     content_json?: FleetMemberContent;
+}
+
+export interface UnknownTrip {
+    id?: number;
+    date: string;
+    tail_no: string;
+    route?: string;
+    flight_hours: number;
+    flight_path: string;
+    unknown: true;
 }

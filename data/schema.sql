@@ -24,6 +24,16 @@ CREATE TABLE IF NOT EXISTS "trips" (
     FOREIGN KEY (tail_no) REFERENCES aircraft(tail_no)
 );
 
+CREATE TABLE IF NOT EXISTS "flight_paths" (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL, -- YYYY-MM-DD
+    tail_no TEXT NOT NULL, -- aircraft tail number
+    route TEXT,
+    flight_hours REAL NOT NULL DEFAULT 0, -- ex. 1.5
+    flight_path TEXT NOT NULL, -- WKT LineString
+    FOREIGN KEY (tail_no) REFERENCES aircraft(tail_no)
+);
+
 CREATE TABLE IF NOT EXISTS "datasources" (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL, -- ex. "FOIA response from WV Governor's Office"
@@ -46,6 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_trips_department ON trips(department);
 CREATE INDEX IF NOT EXISTS idx_trips_division ON trips(division);
 CREATE INDEX IF NOT EXISTS idx_trips_department_division ON trips(department, division);
 CREATE INDEX IF NOT EXISTS idx_trips_flight_hours ON trips(flight_hours);
+CREATE INDEX IF NOT EXISTS idx_flight_paths_tail_no_date ON flight_paths(tail_no, date);
 
 CREATE VIRTUAL TABLE trips_fts USING fts5(
     route,

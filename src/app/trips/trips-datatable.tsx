@@ -119,8 +119,10 @@ export function TripsDataTable({ trips }: {
 
     const [totalTrips, totalHours, totalCost] = trips.reduce((acc, row) => {
         acc[0]++
+        if (!row.unknown) {
         acc[1] += row.flight_hours
         acc[2] += row.flight_hours * row.aircraft.rate
+        }
         return acc
     }, [0, 0, 0])
 

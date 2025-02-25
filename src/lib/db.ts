@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { promises as fs } from 'fs'
-import { Trip, TripSearchParams, FleetMember, FleetTrip, DataSource } from '@/types';
+import type { Trip, TripSearchParams, FleetMember, FleetTrip, DataSource, UnknownTrip } from '@/types';
 import { getPax } from '@/lib/utils';
 import path from 'path';
 
@@ -60,12 +60,39 @@ export async function getTrips(searchParams: TripSearchParams): Promise<FleetTri
         .prepare(`SELECT * FROM trips WHERE ${whereStmt} ORDER BY date DESC`)
         .all(where.length > 0 ? searchParams : []) as Trip[];
 
-    return trips.map(t => ({
-        ...t,
+    const unknownTripsWhere = [
+        '(tail_no, date) NOT IN (SELECT tail_no, date FROM trips)',
+        searchParams?.aircraft ? 'tail_no = @aircraft' : null,
+        searchParams?.startDate ? 'date >= @startDate' : null,
+        searchParams?.endDate ? 'date <= @endDate' : null,
+    ].filter(Boolean).join(' AND ');
+
+    const unknownTrips = db
+        .prepare(`SELECT * FROM flight_paths WHERE ${unknownTripsWhere}`)
+        .all(where.length > 0 ? searchParams : []) as UnknownTrip[];
+
+    const unknownFleetTrips = unknownTrips.map(t => ({
+        id: undefined,
+        date: t.date,
+        tail_no: t.tail_no,
+        route: t.route || "---",
+        department: "???",
+        flight_hours: t.flight_hours,
+        flight_path: t.flight_path,
         aircraft: aircraft.find(a => a.tail_no === t.tail_no) as FleetMember,
-        pax: getPax(t.passengers),
-        invoiced_cost: t.flight_hours * (aircraft.find(a => a.tail_no === t.tail_no)?.rate || 0),
-    }));
+        pax: [],
+        invoiced_cost: 0,
+        unknown: true
+    } as FleetTrip));
+
+    return [...trips, ...unknownFleetTrips]
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map(t => ({
+            ...t,
+            aircraft: aircraft.find(a => a.tail_no === t.tail_no) as FleetMember,
+            pax: getPax(t.passengers),
+            invoiced_cost: t.flight_hours * (aircraft.find(a => a.tail_no === t.tail_no)?.rate || 0),
+        }));
 }
 
 export async function getPassengers(trips: FleetTrip[]): Promise<Map<string, FleetTrip[]>> {
