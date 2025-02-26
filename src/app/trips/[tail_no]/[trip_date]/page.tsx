@@ -187,7 +187,7 @@ export default async function AircraftTripDatePage({ params }: AircraftTripDateP
                                                 <h3 className="text-sm font-medium text-muted-foreground">Limited Flight Data</h3>
                                                 <div className="mt-2 text-sm text-muted-foreground">
                                                     <p>
-                                                        We have recorded flight path data for this date, but haven't received the trip details from the State Aviation Division.
+                                                        We have recorded flight path data for this date, but have not yet received trip details from the State Aviation Division.
                                                         Check back later for updates.
                                                     </p>
                                                 </div>
