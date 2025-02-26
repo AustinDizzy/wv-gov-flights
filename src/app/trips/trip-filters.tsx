@@ -63,17 +63,24 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
                     }
                 }
             });
-            return newSearchParams.toString();
+            return newSearchParams;
         },
         [pathname, searchParamsObj]
     );
 
     const updateFilter = useCallback(
         (params: Record<string, string | undefined>) => {
-            const queryString = createQueryString(params);
-            if (queryString !== window.location.search.substring(1)) {
-                startTransition(() => router.push(`${pathname}?${queryString}`, { scroll: false }));
-            }
+            startTransition(() => {
+                const qs = createQueryString(params);
+                const queryString = qs.toString();
+                if (queryString !== window.location.search.substring(1)) {
+                    /* eslint-disable @typescript-eslint/no-explicit-any */
+                    if (typeof window !== 'undefined' && (window as any).umami) {
+                        (window as any).umami.track('trip_filters', Object.fromEntries(qs));
+                    }
+                    startTransition(() => router.push(`${pathname}?${queryString}`, { scroll: false }));
+                }
+            })
         },
         [pathname, router, createQueryString]
     );

@@ -32,7 +32,7 @@ export function PassengersFilter({ aircraft, departments }: PassengersFilterProp
                     newSearchParams.delete(key)
                 }
             })
-            return newSearchParams.toString()
+            return newSearchParams;
         },
         [searchParams]
     )
@@ -40,7 +40,15 @@ export function PassengersFilter({ aircraft, departments }: PassengersFilterProp
     const updateFilter = useCallback(
         (params: Record<string, string | undefined>) => {
             startTransition(() => {
-                router.push(`${pathname}?${createQueryString(params)}`, { scroll: false })
+                const qs = createQueryString(params)
+                const queryString = qs.toString()
+                if (queryString !== window.location.search.substring(1)) {
+                    /* eslint-disable @typescript-eslint/no-explicit-any */
+                    if (typeof window !== 'undefined' && (window as any).umami) {
+                        (window as any).umami.track('passenger_filters', Object.fromEntries(qs));
+                    }
+                    router.push(`${pathname}?${queryString}`, { scroll: false })
+                }
             })
         },
         [pathname, router, createQueryString]
