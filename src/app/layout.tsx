@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn(inter.className, 'min-h-screen bg-background')}>
+      <body className={cn(inter.className, 'min-h-screen bg-background flex flex-col')}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -28,7 +28,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Navbar aircraft={['N1WV', 'N2WV', 'N3WV', 'N5WV', 'N6WV', 'N890SP', 'N895SP']} />
-          <main className="container mx-auto py-4">
+          <main className="container mx-auto py-4 flex-grow">
             {children}
           </main>
           <Footer />
