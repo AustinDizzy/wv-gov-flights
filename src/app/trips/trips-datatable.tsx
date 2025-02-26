@@ -120,8 +120,8 @@ export function TripsDataTable({ trips }: {
     const [totalTrips, totalHours, totalCost] = trips.reduce((acc, row) => {
         acc[0]++
         if (!row.unknown) {
-        acc[1] += row.flight_hours
-        acc[2] += row.flight_hours * row.aircraft.rate
+            acc[1] += row.flight_hours
+            acc[2] += row.flight_hours * row.aircraft.rate
         }
         return acc
     }, [0, 0, 0])
@@ -170,49 +170,52 @@ export function TripsDataTable({ trips }: {
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
                                 >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className={cn({
-                                            "hidden md:table-cell": ["department", "flight_hours", "tail_no"].includes(cell.column.id),
-                                            "table-cell": !["department", "flight_hours", "tail_no"].includes(cell.column.id)
-                                        })}>
-                                            {cell.column.id === "route" ? (
-                                                <div className="flex flex-col">
-                                                    <Link
-                                                        href={`/trips/${row.original.tail_no}/${row.original.date}`}
-                                                        className="block -mx-4 px-4 py-2 hover:bg-muted/50 transition-colors"
-                                                        prefetch={false}
-                                                        >
-                                                        <div className="md:hidden flex-col">
+                                    <Link
+                                        href={`/trips/${row.original.tail_no}/${row.original.date}`}
+                                        className="contents hover:bg-muted/50 transition-colors group"
+                                        prefetch={false}
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id} className={cn(
+                                                "group-hover:bg-muted/50",
+                                                {
+                                                    "hidden md:table-cell": ["department", "flight_hours", "tail_no"].includes(cell.column.id),
+                                                    "table-cell": !["department", "flight_hours", "tail_no"].includes(cell.column.id)
+                                                }
+                                            )}>
+                                                {cell.column.id === "route" ? (
+                                                    <div className="flex flex-col">
+                                                        <div className="md:hidden">
                                                             <AircraftTooltip aircraft={row.original.aircraft} />
                                                         </div>
                                                         {flexRender(
                                                             cell.column.columnDef.cell,
                                                             cell.getContext()
                                                         )}
-                                                    </Link>
-                                                    <div className="flex md:hidden flex-row justify-between mt-2">
-                                                        <div className="text-sm text-muted-foreground">
-                                                            {row.original.department}
-                                                            {row.original.division && (
-                                                                <small className="block">{row.original.division}</small>
-                                                            )}
-                                                        </div>
-                                                        <div className="text-sm text-muted-foreground mt-2 md:mt-0">
-                                                            <span className="flex items-center">
-                                                                <Timer className="h-4 w-4 mr-1" />
-                                                                {formatDuration(row.original.flight_hours)}
-                                                            </span>
+                                                        <div className="flex md:hidden flex-row justify-between mt-2">
+                                                            <div className="text-sm text-muted-foreground">
+                                                                {row.original.department}
+                                                                {row.original.division && (
+                                                                    <small className="block">{row.original.division}</small>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-sm text-muted-foreground mt-2 md:mt-0">
+                                                                <span className="flex items-center">
+                                                                    <Timer className="h-4 w-4 mr-1" />
+                                                                    {formatDuration(row.original.flight_hours)}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ) : (
-                                                flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )
-                                            )}
-                                        </TableCell>
-                                    ))}
+                                                ) : (
+                                                    flexRender(
+                                                        cell.column.columnDef.cell,
+                                                        cell.getContext()
+                                                    )
+                                                )}
+                                            </TableCell>
+                                        ))}
+                                    </Link>
                                 </TableRow>
                             ))
                         ) : (
