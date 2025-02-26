@@ -1,24 +1,35 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FleetTrip } from "@/types";
+import { filterTrips } from "@/lib/utils";
+import type { FleetTrip } from "@/types";
 import { ChartPie } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useSearchParams } from 'next/navigation';
 
 interface DepartmentUsageChartProps {
     trips: FleetTrip[];
-    type?: 'department' | 'division';
 }
 
-export function DepartmentUsageChart({ trips, type = 'department' }: DepartmentUsageChartProps) {
+export function DepartmentUsageChart({ trips }: DepartmentUsageChartProps) {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-
+    const searchParams = useSearchParams();
     const truncateName = (name: string) => {
         if (!isMobile) return name;
         return name.length > 20 ? name.slice(0, 18) + '...' : name;
     };
 
-    const data = trips.reduce((acc, trip) => {
+    const type = (searchParams.has('department') ? 'division' : 'department') as 'division' | 'department';
+    const filteredTrips = filterTrips(trips, {
+        aircraft: searchParams.get('aircraft') || undefined,
+        department: searchParams.get('department') || undefined,
+        division: searchParams.get('division') || undefined,
+        search: searchParams.get('search') || undefined,
+        startDate: searchParams.get('startDate') || undefined,
+        endDate: searchParams.get('endDate') || undefined,
+    });
+
+    const data = filteredTrips.reduce((acc, trip) => {
         if (type === 'division') {
             if (!trip.division) return acc;
             acc[trip.division] = (acc[trip.division] || 0) + 1;
@@ -54,13 +65,13 @@ export function DepartmentUsageChart({ trips, type = 'department' }: DepartmentU
     };
 
     return (
-        chartData.length > 0 && <Card>
+        chartData.length > 1 && <Card>
             <CardHeader className="space-y-1">
                 <CardTitle className="text-xl capitalize flex items-center cursor-pointer">
                     <ChartPie size={20} className="inline mr-2" />
                     {type} Usage
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">Distribution of trips across {type}s</p>
+                <p className="text-sm text-muted-foreground">Distribution of trips across {type}s{type == 'division' && ' of the ' + searchParams.get("department")}</p>
             </CardHeader>
             <CardContent>
                 <div className="h-96 md:h-80">

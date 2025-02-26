@@ -1,10 +1,11 @@
 'use client';
 
 import { useRef, useEffect, useCallback, useMemo, memo } from 'react';
-import { parseWKT } from '@/lib/utils';
+import { filterTrips, parseWKT } from '@/lib/utils';
 import { FleetTrip } from '@/types';
 import L from 'leaflet';
 import 'leaflet.heat';
+import { useSearchParams } from 'next/navigation';
 
 interface MapComponentProps {
     trips: FleetTrip[];
@@ -30,6 +31,15 @@ function MapComponent({
         lines: null as L.LayerGroup | null
     });
     const boundsRef = useRef<L.LatLngBounds | null>(null);
+    const params = useSearchParams();
+    const filter = useMemo(() => ({
+        aircraft: params.get('aircraft') || undefined,
+        department: params.get('department') || undefined,
+        division: params.get('division') || undefined,
+        search: params.get('search') || undefined,
+        startDate: params.get('startDate') || undefined,
+        endDate: params.get('endDate') || undefined
+    }), [params]);
 
     const pathFrequency = useMemo(() => {
         const frequencyMap = new Map<string, number>();
@@ -79,7 +89,7 @@ function MapComponent({
         const heatPoints: [number, number, number][] = [];
         const lines: L.Polyline[] = [];
 
-        trips.forEach(trip => {
+        filterTrips(trips, filter).forEach(trip => {
             if (!trip.flight_path) return;
 
             try {
@@ -101,7 +111,7 @@ function MapComponent({
         });
 
         return { heatPoints, lines };
-    }, [trips, selectedTrip, pathFrequency, createLineStyle, handleLineEvents]);
+    }, [trips, selectedTrip, filter, pathFrequency, createLineStyle, handleLineEvents]);
 
     const destroyMap = useCallback(() => {
         if (mapInstance.current) {
