@@ -12,6 +12,7 @@ import { DepartmentUsageChart } from '@/components/department-usage-chart';
 import { InfoIcon } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
+import { Suspense } from 'react';
 
 export const dynamicParams = false;
 
@@ -153,12 +154,12 @@ export default async function AircraftTripsPage({ params }: AircraftTripsPagePro
                 </Card>
 
                 {trips.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <TripActivityChart trips={trips} />
-                        <DepartmentUsageChart
-                            trips={trips}
-                        />
-                    </div>
+                    <Suspense fallback={<div>Loading charts...</div>}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <TripActivityChart trips={trips} />
+                            <DepartmentUsageChart trips={trips} />
+                        </div>
+                    </Suspense>
                 )}
 
                 {trips.filter(t => t.flight_path).length > 1 && (
