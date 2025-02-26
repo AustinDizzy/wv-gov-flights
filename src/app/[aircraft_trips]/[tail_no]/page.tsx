@@ -31,8 +31,10 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: AircraftTripsPageProps) {
     const aircraft = await getAircraft((await params).tail_no).then(a => a?.pop());
     if (!aircraft) return notFound();
+    const trips = await getTrips({ aircraft: aircraft.tail_no });
     return {
-        title: [getEmoji(aircraft), aircraft.tail_no, '-', aircraft.name].join(' ')
+        title: [getEmoji(aircraft), aircraft.tail_no, '-', aircraft.name].join(' '),
+        description: `${aircraft.tail_no} has flown ${trips.length} trips totaling ${trips.reduce((acc, trip) => acc + trip.flight_hours, 0)} hours.`,
     }
 }
 

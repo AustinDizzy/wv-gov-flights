@@ -9,8 +9,15 @@ import Script from 'next/script'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
+  metadataBase: new URL('https://wv-gov-flights.pages.dev'),
   title: 'Golden Dome Airways - WV State Aircraft Flight Logs',
   description: 'An unofficial public flight log for aircraft operated by the State of West Virginia.',
+  twitter: {
+    card: 'summary',
+  },
+  openGraph: {
+    type: 'website',
+  }
 }
 
 export default function RootLayout({
