@@ -62,6 +62,7 @@ async function getAircraftTrips(tail_no: string, trip_date: string): Promise<{tr
 }
 
 function isRoundTrip(route: string): boolean {
+    if (route.split("-").length < 2) return false;
     return route.split("-").every((p, i, a) => p === a[a.length - 1 - i])
 }
 
@@ -126,16 +127,12 @@ export default async function AircraftTripDatePage({ params }: AircraftTripDateP
                 {trips.map((trip, i) => (
                     <Card key={trip.id || `unknown-${i}`} id={trip.id?.toString()} className="card grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
                         {(trip.route.replaceAll("-","").length > 0) && <h1 className="text-2xl md:text-justify text-center font-semibold col-span-full">
-                            {trip.unknown ? trip.route : (
-                                <>
-                                    {trips.length > 1 && (
-                                        <a className="text-sm text-muted-foreground font-mono font-light" href={`#${trip.id}`}>#{i}.</a>
-                                    )}
-                                    <div className="inline-flex flex-col md:flex-row items-center gap-2">
-                                        {formatRouteStr(trip.route)}{" "}{isRoundTrip(trip.route) && <span className="text-muted-foreground text-base whitespace-nowrap">(round trip)</span>}
-                                    </div>
-                                </>
+                            {trips.length > 1 && (
+                                <a className="text-sm text-muted-foreground font-mono font-light" href={`#${trip.id}`}>#{i}.</a>
                             )}
+                            <div className="inline-flex flex-col md:flex-row items-center gap-2">
+                                {formatRouteStr(trip.route)}{" "}{isRoundTrip(trip.route) && <span className="text-muted-foreground text-base whitespace-nowrap">(round trip)</span>}
+                            </div>
                         </h1>}
                         <Card className="p-6">
                             <dl className="space-y-4">
