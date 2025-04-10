@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { getDataSources } from "@/lib/db"
 import Link from "next/link";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 export default async function DataSourcesPage() {
     const dataSources = await getDataSources();
@@ -30,7 +30,7 @@ export default async function DataSourcesPage() {
                                 <TableRow key={source.path}>
                                     <TableCell>{source.name}</TableCell>
                                     <TableCell>{source.source}</TableCell>
-                                    <TableCell>{format(source.date, "MMMM d, yyyy")}</TableCell>
+                                    <TableCell>{format(parseISO(source.date), "MMMM d, yyyy")}</TableCell>
                                     <TableCell>
                                         <Link href={source.path} className="text-primary hover:underline">
                                             {source.path.replace(/^.*[\\/]/, '')}
