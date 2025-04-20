@@ -1,6 +1,6 @@
 import { getAircraft, getPassengers, getTrips } from "@/lib/db";
 import type { FleetMember, FleetTrip } from "@/types";
-import { AircraftTable } from '@/app/aircraft/aircraft-table';
+import { AircraftTable } from '@/components/aircraft-table';
 import { DistanceTooltip } from "@/components/distance-tooltip";
 import Link from "next/link";
 import { TripsTable } from "@/app/trips/trips-datatable";
