@@ -1,163 +1,116 @@
 'use client';
 
-import { useCallback, useTransition } from "react"
-import { useRouter, usePathname, useSearchParams } from "next/navigation"
-import { Input } from "@/components/ui/input"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import type { FleetMember } from "@/types"
-import { Button } from "@/components/ui/button"
-import { X, Search, Check, ChevronsUpDown, Calendar as CalendarIcon } from "lucide-react"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
-import { format, parse } from "date-fns"
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import { format, parse } from 'date-fns';
+import { cn } from '@/lib/utils';
+import type { FleetTrip, FleetMember } from '@/types';
+import { Search as SearchIcon, Calendar as CalendarIcon, X, ChevronsUpDown } from 'lucide-react';
+import { DateRange } from 'react-day-picker';
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Check } from "lucide-react";
 
-import { useState, useEffect } from "react"
-import { DateRange } from "react-day-picker"
-
-interface TripFiltersProps {
-    aircraft?: FleetMember[]
-    departments: string[]
-    divisions: string[]
-    searchParams: {
-        search?: string
-        aircraft?: string
-        department?: string
-        division?: string
-        startDate?: string
-        endDate?: string
-    }
-}
-const allowedFilters = ['search', 'aircraft', 'department', 'division', 'startDate', 'endDate']
-
-export function TripFilters({ aircraft, departments, divisions, searchParams }: TripFiltersProps) {
-    const router = useRouter()
-    const pathname = usePathname()
-    const searchParamsObj = useSearchParams()
-    const [, startTransition] = useTransition()
-    const [selectedRange, setSelectedRange] = useState<{ from?: Date, to?: Date }>(
-        {
-            from: searchParams.startDate ? parse(searchParams.startDate, 'yyyy-MM-dd', new Date()) : undefined,
-            to: searchParams.endDate ? parse(searchParams.endDate, 'yyyy-MM-dd', new Date()) : undefined,
-        }
-    )
-
-    const [searchTerm, setSearchTerm] = useState(searchParams.search || '');
-
-    const createQueryString = useCallback(
-        (params: Record<string, string | undefined>) => {
-            const newSearchParams = new URLSearchParams(searchParamsObj.toString());
-            Object.entries(params).forEach(([key, value]) => {
-                if (allowedFilters.includes(key) && !pathname.startsWith(`/${key}`)) {
-                    if (value) {
-                        newSearchParams.set(key, value)
-                    } else {
-                        newSearchParams.delete(key)
-                    }
-                }
-            });
-            return newSearchParams;
-        },
-        [pathname, searchParamsObj]
-    );
-
-    const updateFilter = useCallback(
-        (params: Record<string, string | undefined>) => {
-            startTransition(() => {
-                const qs = createQueryString(params);
-                const queryString = qs.toString();
-                if (queryString !== window.location.search.substring(1)) {
-                    /* eslint-disable @typescript-eslint/no-explicit-any */
-                    if (typeof window !== 'undefined' && (window as any).umami) {
-                        (window as any).umami.track('trip_filters', Object.fromEntries(qs));
-                    }
-                    startTransition(() => router.push(`${pathname}?${queryString}`, { scroll: false }));
-                }
-            })
-        },
-        [pathname, router, createQueryString]
-    );
-
-    const clearFilters = useCallback(() => {
-        setSelectedRange({})
-        startTransition(() => router.push(pathname))
-    }, [pathname, router])
-
-    const handleDateSelect = (range: DateRange | undefined) => {
-        if (!range) {
-            setSelectedRange({})
-            updateFilter({ 'startDate': undefined, 'endDate': undefined })
-            return
-        }
-        setSelectedRange(range)
-        updateFilter({
-            'startDate': range?.from?.toISOString().split('T')[0],
-            'endDate': range?.to?.toISOString().split('T')[0]
-        })
+interface TripsFiltersProps {
+    trips: FleetTrip[];
+    aircraft: FleetMember[];
+    urlState: {
+        search?: string;
+        aircraft?: string;
+        department?: string;
+        division?: string;
+        startDate?: string;
+        endDate?: string;
+        page?: number;
+        size?: number;
+        sort?: string;
     };
+    updateUrl: (newState: Partial<TripsFiltersProps['urlState']>) => void;
+    filtersActive: boolean;
+}
+
+export function TripsFilters({ trips, aircraft, urlState, updateUrl, filtersActive }: TripsFiltersProps) {
+    const [searchTerm, setSearchTerm] = useState(urlState.search || '');
+    const [selectedRange, setSelectedRange] = useState<{ from?: Date, to?: Date }>({
+        from: urlState.startDate ? parse(urlState.startDate, 'yyyy-MM-dd', new Date()) : undefined,
+        to: urlState.endDate ? parse(urlState.endDate, 'yyyy-MM-dd', new Date()) : undefined,
+    });
+
+    const departments = useMemo(() => [...new Set(trips.map(t => t.department).filter(Boolean))].sort(), [trips]);
+    const divisions = useMemo(() => [...new Set(trips.map(t => t.division).filter(Boolean))].sort(), [trips]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
-            updateFilter({ 'search': searchTerm })
-        }, 500)
+            if (searchTerm !== urlState.search) {
+                updateUrl({ search: searchTerm, page: 1 });
+            }
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [searchTerm, urlState.search, updateUrl]);
 
-        return () => {
-            clearTimeout(handler)
-        }
-    }, [searchTerm, updateFilter])
+    const handleFilterChange = (key: keyof typeof urlState, value: string | undefined) => {
+        updateUrl({ [key]: value, page: 1 });
+    };
+
+    const handleDateSelect = (range: DateRange | undefined) => {
+        const newStartDate = range?.from?.toISOString().split('T')[0];
+        const newEndDate = range?.to?.toISOString().split('T')[0];
+        setSelectedRange(range || {});
+        updateUrl({
+            startDate: newStartDate,
+            endDate: newEndDate,
+            page: 1,
+        });
+    };
+
+    const clearFilters = useCallback(() => {
+        setSearchTerm('');
+        setSelectedRange({});
+        const clearState: Partial<typeof urlState> = {};
+        ['search', 'aircraft', 'department', 'division', 'startDate', 'endDate'].forEach(key => clearState[key as keyof typeof urlState] = undefined);
+        clearState.page = 1;
+        updateUrl(clearState);
+    }, [updateUrl]);
 
     return (
-        <div className="p-4 grid gap-2 md:grid-cols-2 lg:grid-cols-5 z-10">
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-5 items-end">
             <div className="col-span-full relative">
-                <Search className="text-muted-foreground absolute left-3 top-1/2 transform -translate-y-1/2 opacity-30 focus-within:opacity-70" />
+                <Label htmlFor="trip-search" className="sr-only">Search Trips</Label>
+                <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50" />
                 <Input
-                    placeholder="Search trips..."
-                    className="pl-10 w-full"
-                    defaultValue={searchParams.search}
+                    id="trip-search"
+                    placeholder="Search route, passengers, dept, division, comments..."
+                    className="pl-10 w-full h-9"
+                    value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-            <p className="text-xs text-muted-foreground col-span-full">
-                Full-text search supports on: <code>route, passengers, department, division, and comments.</code>
-            </p>
-
-            {!pathname.startsWith("/aircraft") && <div className="md:col-span-full lg:col-span-1">
-                <Label className="text-sm mb-1 block">
-                    Aircraft
-                </Label>
-                <Select
-                    value={searchParams.aircraft || ''}
-                    onValueChange={(value) => updateFilter({ 'aircraft': value })}
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select Aircraft" className="hover:bg-primary-foreground" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {aircraft?.filter(a => a.trip_count > 0).map((a) => (
-                            <SelectItem key={a.tail_no} value={a.tail_no}>
-                                {a.tail_no} - {a.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>}
-
+            {aircraft.length > 0 && (
+                <div>
+                    <Label className="text-sm mb-1 block">Aircraft</Label>
+                    <Select value={urlState.aircraft || ''} onValueChange={(value) => handleFilterChange('aircraft', value || undefined)}>
+                        <SelectTrigger className="h-9">
+                            <SelectValue placeholder="All aircraft" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {aircraft.filter(a => a.trip_count > 0).map((a) => (
+                                <SelectItem key={a.tail_no} value={a.tail_no}>{a.tail_no} - {a.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
             <div>
-                <Label className="text-sm mb-1 block">
-                    Date Range
-                </Label>
+                <Label className="text-sm mb-1 block">Date Range</Label>
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button
                             variant="outline"
-                            className="w-full justify-start text-left h-9 px-3 py-2 text-sm bg-transparent border border-input hover:text-primary-foreground"
+                            className="w-full justify-start text-left h-9 px-3 py-2 text-sm bg-transparent border border-input hover:text-accent-foreground font-normal"
                         >
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {selectedRange.from || selectedRange.to ? (
@@ -174,31 +127,25 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
                     <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                             mode="range"
-                            defaultMonth={selectedRange.from ? selectedRange.from : new Date()}
-                            selected={selectedRange.from || selectedRange.to ? {
-                                from: selectedRange.from ? selectedRange.from : undefined,
-                                to: selectedRange.to ? selectedRange.to : undefined,
-                            } : undefined}
+                            defaultMonth={selectedRange.from || new Date()}
+                            selected={selectedRange.from || selectedRange.to ? { from: selectedRange.from, to: selectedRange.to } : undefined}
                             onSelect={handleDateSelect}
                             initialFocus
                         />
                     </PopoverContent>
                 </Popover>
             </div>
-
             <div>
-                <Label className="text-sm mb-1 block">
-                    Department
-                </Label>
+                <Label className="text-sm mb-1 block">Department</Label>
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button
                             variant="outline"
                             role="combobox"
-                            className="w-full justify-between h-9 px-3 py-2 text-sm bg-transparent border border-input hover:text-primary-foreground"
+                            className="w-full justify-between h-9 px-3 py-2 text-sm bg-transparent border border-input hover:text-accent-foreground font-normal"
                         >
-                            {searchParams.department
-                                ? departments.find((dept) => dept === searchParams.department)
+                            {urlState.department
+                                ? departments.find((dept) => dept === urlState.department) || "Select department..."
                                 : "Select department..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -208,16 +155,24 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
                             <CommandInput placeholder="Search department..." />
                             <CommandEmpty>No department found.</CommandEmpty>
                             <CommandGroup>
+                                <CommandItem
+                                    key="all-dept"
+                                    onSelect={() => handleFilterChange('department', undefined)}
+                                    className="cursor-pointer"
+                                >
+                                    <Check
+                                        className={cn("mr-2 h-4 w-4", !urlState.department ? "opacity-100" : "opacity-0")}
+                                    />
+                                    All Departments
+                                </CommandItem>
                                 {departments.map((dept) => (
                                     <CommandItem
                                         key={dept}
-                                        onSelect={() => {
-                                            updateFilter({ 'department': dept })
-                                        }}
+                                        onSelect={() => handleFilterChange('department', dept)}
                                         className="cursor-pointer"
                                     >
                                         <Check
-                                            className={`mr-2 h-4 w-4 ${searchParams.department === dept ? "opacity-100" : "opacity-0"}`}
+                                            className={cn("mr-2 h-4 w-4", urlState.department === dept ? "opacity-100" : "opacity-0")}
                                         />
                                         {dept}
                                     </CommandItem>
@@ -227,46 +182,37 @@ export function TripFilters({ aircraft, departments, divisions, searchParams }: 
                     </PopoverContent>
                 </Popover>
             </div>
-
-            {divisions.filter((div) => div.length > 0).length > 0 && (
+            {divisions.length > 0 && (
                 <div>
-                    <Label className="text-sm mb-1 block">
-                        Division
-                    </Label>
-                    <Select
-                        value={searchParams.division || ''}
-                        onValueChange={(value) => updateFilter({ 'division': value })}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Division" />
+                    <Label className="text-sm mb-1 block">Division</Label>
+                    <Select value={urlState.division || ''} onValueChange={(value) => handleFilterChange('division', value || undefined)} disabled={!urlState.department}>
+                        <SelectTrigger className="h-9" disabled={!urlState.department}>
+                            <SelectValue placeholder="All divisions" />
                         </SelectTrigger>
                         <SelectContent>
-                            {divisions.filter((div) => div.length > 0).map((div) => (
-                                <SelectItem key={div} value={div}>
-                                    {div}
-                                </SelectItem>
-                            ))}
+                            {divisions
+                                .filter(div => div != undefined)
+                                .filter(div => div.length > 0)
+                                .filter(div => !urlState.department || trips.some(t => t.department === urlState.department && t.division === div))
+                                .map((div) => (
+                                    <SelectItem key={div} value={div}>{div}</SelectItem>
+                                ))}
                         </SelectContent>
                     </Select>
                 </div>
             )}
-
-            {Object.values(searchParams).some(Boolean) && (
-                Object.entries(searchParams).filter(([k, v]) => v && allowedFilters.includes(k) && !(pathname.startsWith('/' + k))).length > 0
-            ) && (
-                    <div>
-                        <Label className="text-sm mb-1 block">
-                            &nbsp;
-                        </Label>
-                        <Button
-                            onClick={clearFilters}
-                            className="w-full"
-                        >
-                            <X className="h-4 w-4" />
-                            Clear Filters
-                        </Button>
-                    </div>
-                )}
+            {filtersActive && (
+                <div className={cn(divisions.length === 0 && "lg:col-start-5")}>
+                    <Button
+                        onClick={clearFilters}
+                        variant="default"
+                        className="w-full h-9"
+                    >
+                        <X className="h-4 w-4 mr-2" />
+                        Clear Filters
+                    </Button>
+                </div>
+            )}
         </div>
-    )
+    );
 }

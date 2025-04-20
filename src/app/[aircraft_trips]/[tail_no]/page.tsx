@@ -1,5 +1,5 @@
 import { getTrips, getAircraft } from '@/lib/db';
-import { TripsTable } from '@/app/trips/trips-table';
+import { TripsTable } from '@/app/trips/trips-datatable';
 import type { FleetMember } from '@/types';
 import { cn, getEmoji } from '@/lib/utils';
 import TripsMap from '@/components/TripsMap/TripsMap';
@@ -169,10 +169,12 @@ export default async function AircraftTripsPage({ params }: AircraftTripsPagePro
                 )}
 
                 {aircraft.trip_count > 0 &&
-                    <TripsTable
-                        trips={trips}
-                        aircraft={[aircraft]}
-                    />
+                    <Suspense fallback={<div>Loading trips...</div>}>
+                        <TripsTable
+                            trips={trips}
+                            aircraft={[aircraft]}
+                        />
+                    </Suspense>
                 }
             </div>
         </div>

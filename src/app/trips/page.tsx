@@ -1,6 +1,7 @@
 import { getAircraft, getTrips } from "@/lib/db";
-import { TripsTable } from "@/app/trips/trips-table";
+import { TripsTable } from "@/app/trips/trips-datatable";
 import type { FleetMember } from "@/types";
+import { Suspense } from "react";
 
 export default async function TripsPage() {
     const [trips, aircraft] = await Promise.all([
@@ -10,10 +11,13 @@ export default async function TripsPage() {
 
     return (
         <div className="space-y-6 p-6">
-            <TripsTable
-                trips={trips}
-                aircraft={aircraft as FleetMember[]}
-            />
+            <Suspense>
+                <TripsTable
+                    trips={trips}
+                    aircraft={aircraft as FleetMember[]}
+                    variant='default'
+                />
+            </Suspense>
         </div>
     );
 }

@@ -3,12 +3,18 @@ import type { FleetMember, FleetTrip } from "@/types";
 import { AircraftTable } from '@/app/aircraft/aircraft-table';
 import { DistanceTooltip } from "@/components/distance-tooltip";
 import Link from "next/link";
+import { TripsTable } from "@/app/trips/trips-datatable";
+import { Suspense } from "react";
 
 export default async function Home() {
   const aircraft = await getAircraft() as FleetMember[]
   const trips = await getTrips({}) as FleetTrip[]
 
-  const totalFlights = trips.map(t => t.route).reduce((a, b) => a+(b.split(/-| to /).length - 1), 0)
+  const recentTrips = trips
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
+
+  const totalFlights = trips.map(t => t.route).reduce((a, b) => a + (b.split(/-| to /).length - 1), 0)
   const totalPax = (await getPassengers(trips)).size
   const flightPaths = trips.flatMap(t => t.flight_path ? [t.flight_path] : [])
 
@@ -17,17 +23,17 @@ export default async function Home() {
   return (
     <div className="space-y-6 p-6">
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="mr-4 space-y-8">
+        <div className="mr-4 space-y-8 lg:mt-8">
           <p>
             The <a href="https://www.wv.gov" target="nofollow noopener" className="text-primary underline">State of West Virginia</a> owns and operates a fleet of aircraft with its <a href="https://aviation.wv.gov" target="nofollow noopener" className="text-primary underline">State Aviation Division</a>. This site provides a way to search & discover the use of these aircraft, including the passengers, routes, departments, flight paths, and justifications.
             <br /><br />
             This website currently has data on{" "}
             <Link href="/trips" className="text-primary underline">
-            {trips.length.toLocaleString()} trips
+              {trips.length.toLocaleString()} trips
             </Link> ({totalFlights.toLocaleString()} flights) totaling{" "}
             {totalHours.toLocaleString()} flight hours, with{" "}
             <Link href="/passengers" className="text-primary underline whitespace-nowrap">
-            {totalPax.toLocaleString()} passengers
+              {totalPax.toLocaleString()} passengers
             </Link>{" "} recorded traveling over{" "}
             <DistanceTooltip paths={flightPaths} variant="long" />.
           </p>
@@ -37,9 +43,26 @@ export default async function Home() {
             See the <a href="https://github.com/AustinDizzy/wv-gov-flights/wiki/Frequently-Asked-Questions" target="nofollow noopener" className="text-primary underline">Frequently Asked Questions page</a> in the project wiki for more information.
           </p>
         </div>
-        <div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight">
+            Aircraft Fleet
+          </h2>
           <AircraftTable fleet={aircraft} />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-semibold tracking-tight">
+            Most Recent Trips
+          </h2>
+          <Link href="/trips" className="text-sm text-primary">
+            View all trips →
+          </Link>
+        </div>
+        <Suspense>
+          <TripsTable trips={recentTrips} variant='mini' />
+        </Suspense>
       </div>
     </div>
   )

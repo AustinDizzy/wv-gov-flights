@@ -1,6 +1,6 @@
 import { getPassengers, getTrips } from "@/lib/db";
 import { getPaxMap, hasPax, parseNameSlug } from "@/lib/utils";
-import { TripsDataTable } from "@/app/trips/trips-datatable";
+import { TripsTable } from "@/app/trips/trips-datatable";
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { DurationTooltip } from "@/components/duration-tooltip";
@@ -29,7 +29,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PassengerPageProps) {
-    const [ , passenger, trips ] = await getPassenger((await params).name);
+    const [, passenger, trips] = await getPassenger((await params).name);
     return {
         title: `${passenger} | Passengers on WV State Aircraft `,
         description: `${trips.length} trips by ${passenger} on WV State aircraft`
@@ -72,14 +72,17 @@ export default async function PassengerPage({ params }: PassengerPageProps) {
                             <div>
                                 <p className="text-sm">Passenger Cost</p>
                                 <p className="text-xl font-semibold">
-                                    {Number(trips.map(t => (t.flight_hours * t.aircraft.rate)/t.pax.length).reduce((a, b) => a + b, 0)).toLocaleString('en-US', { style: 'currency', currency: 'USD' }).replace(/\.00$/, '')}
+                                    {Number(trips.map(t => (t.flight_hours * t.aircraft.rate) / t.pax.length).reduce((a, b) => a + b, 0)).toLocaleString('en-US', { style: 'currency', currency: 'USD' }).replace(/\.00$/, '')}
                                 </p>
                             </div>
                         </div>
                     </Card>
                 </div>
                 <Suspense>
-                    <TripsDataTable trips={trips} />
+                    <TripsTable
+                        trips={trips}
+                        variant='default'
+                    />
                 </Suspense>
             </div>
         </div>
