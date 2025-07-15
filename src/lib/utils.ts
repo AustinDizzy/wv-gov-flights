@@ -121,7 +121,8 @@ export function getPax(passengers?: string): string[] {
     .map(p => p.trim())
     .map(p => p.split(/;(?=(?:[^()]*\([^()]*\))*[^()]*$)/))
     .flat()
-    .map(p => p.trim());
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
 }
 
 export function getPaxMap(passengers?: string): Record<string, string> {
