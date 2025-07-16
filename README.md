@@ -15,7 +15,7 @@ See the [Frequently Asked Questions](https://github.com/AustinDizzy/wv-gov-fligh
 
 ## Data
 
-Information has been sourced from public records and legal requests made under [W.Va. Code § 29B-1-1 (WVFOIA))](https://code.wvlegislature.gov/29b-1/). The intent is to keep the database updated on a semiannual basis as information is released.
+Information has been sourced from public records and legal requests made under [W.Va. Code § 29B-1-1 (WVFOIA)](https://code.wvlegislature.gov/29b-1/). The intent is to keep the database updated on a semiannual basis as information is released.
 
 Current data includes **2,031 trips** spanning from **Jan 7, 2017** to **Apr 1, 2025** totaling **5,831 flight hours**. See [data/schema.sql](./data/schema.sql) for the database schema.
 
