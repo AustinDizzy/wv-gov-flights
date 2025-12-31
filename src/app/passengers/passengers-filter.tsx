@@ -44,8 +44,8 @@ export function PassengersFilter({ aircraft, departments }: PassengersFilterProp
                 const queryString = qs.toString()
                 if (queryString !== window.location.search.substring(1)) {
                     /* eslint-disable @typescript-eslint/no-explicit-any */
-                    if (typeof window !== 'undefined' && (window as any).umami) {
-                        (window as any).umami.track('passenger_filters', Object.fromEntries(qs));
+                    if (typeof window !== 'undefined' && (window as any).rybbit) {
+                        (window as any).rybbit.event('passenger_filters', Object.fromEntries(qs));
                     }
                     router.push(`${pathname}?${queryString}`, { scroll: false })
                 }

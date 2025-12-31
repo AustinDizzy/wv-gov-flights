@@ -42,8 +42,8 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
       <Script
-        src="https://tr.absec.org/script.js"
-        data-website-id="a8b46f33-07d5-45c5-bb74-66152ef73b6c"
+        src="https://tr.abs.codes/api/script.js"
+        data-site-id="f0e0bf3b76e4"
         strategy="afterInteractive"
       />
     </html>
