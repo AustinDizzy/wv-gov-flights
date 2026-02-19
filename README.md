@@ -17,7 +17,7 @@ See the [Frequently Asked Questions](https://github.com/AustinDizzy/wv-gov-fligh
 
 Information has been sourced from public records and legal requests made under [W.Va. Code § 29B-1-1 (WVFOIA)](https://code.wvlegislature.gov/29b-1/). The intent is to keep the database updated on a semiannual basis as information is released.
 
-Current data includes **2,219 trips** spanning from **Jan 7, 2017** to **Oct 12, 2025** totaling **6,323.3 flight hours**. See [data/schema.sql](./data/schema.sql) for the database schema.
+Current data includes **2,262 trips** spanning from **Jan 6, 2017** to **Jan 12, 2026** totaling **6,405.1 flight hours**. See [data/schema.sql](./data/schema.sql) for the database schema.
 
 <table>
 <tr>
@@ -28,11 +28,11 @@ Current data includes **2,219 trips** spanning from **Jan 7, 2017** to **Oct 12,
 
 | tail_no | total_trips |  min_date  |  max_date  |
 |---------|-------------|------------|------------|
-| N1WV    | 423         | 2017-01-13 | 2025-10-08 |
+| N1WV    | 432         | 2017-01-13 | 2026-01-13 |
 | N2WV    | 44          | 2017-01-31 | 2021-05-05 |
-| N3WV    | 588         | 2017-02-03 | 2025-10-12 |
-| N5WV    | 394         | 2017-01-11 | 2025-10-10 |
-| N6WV    | 321         | 2017-02-10 | 2025-10-10 |
+| N3WV    | 603         | 2017-02-03 | 2026-01-12 |
+| N5WV    | 399         | 2017-01-11 | 2025-12-01 |
+| N6WV    | 335         | 2017-02-10 | 2026-01-13 |
 | N890SP  | 289         | 2017-01-07 | 2025-10-06 |
 | N895SP  | 160         | 2018-06-18 | 2025-05-16 |
 
