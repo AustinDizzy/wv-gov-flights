@@ -1,0 +1,250 @@
+---
+import type { Feature, LineString, MultiLineString } from "geojson";
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../../db/client";
+import { Info } from "lucide-react";
+import FlightMap from "../../components/FlightMap";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAircraftProfile } from "../../lib/aircraft-profile";
+import { appPath } from "../../lib/config";
+import { getTrip } from "../../lib/db/public";
+import {
+  findAircraftByTailNo,
+  findPublishedTripIdsByTailAndDate,
+} from "../../lib/db/public-queries";
+import {
+  aircraftRoute,
+  documentRoute,
+  documentSourceName,
+  passengerRoute,
+} from "../../lib/public-routes";
+import {
+  formatCurrency,
+  formatDate,
+  parseRouteStops,
+  safeJson,
+} from "../../lib/utils";
+import AircraftBadge from "../../components/AircraftBadge";
+import MeasurementToggle from "../../components/MeasurementToggle";
+import { Badge } from "../../components/ui/badge";
+import { Card } from "../../components/ui/card";
+
+export const prerender = false;
+const db = createDatabase(env.DB);
+const tripId = Astro.params.id ?? "";
+const aircraft = tripId ? await findAircraftByTailNo(db, tripId) : null;
+if (aircraft) {
+  return Astro.redirect(
+    appPath(aircraftRoute(aircraft.tail_no), env),
+    301,
+  );
+}
+
+const trip = tripId ? await getTrip(db, tripId) : null;
+if (!trip) return Astro.redirect(appPath("/trips", env), 302);
+if (
+  trip.tail_no &&
+  Astro.originPathname === appPath(`/trips/${encodeURIComponent(String(trip.id))}`, env)
+) {
+  const sameDay = await findPublishedTripIdsByTailAndDate(
+    db,
+    String(trip.tail_no),
+    String(trip.report_date),
+  );
+  if (sameDay.length === 1 && sameDay[0].id === trip.id) {
+    return Astro.redirect(
+      appPath(
+        `/trips/${encodeURIComponent(String(trip.tail_no).toLocaleUpperCase("en-US"))}/${trip.report_date}`,
+        env,
+      ),
+      301,
+    );
+  }
+}
+
+const people = trip.people as Array<{ id: string; canonical_name: string; printed_name: string }>;
+const division = trip.division?.trim();
+const sources = trip.sources as Array<{
+  id: string;
+  original_filename: string;
+  source_agency: string | null;
+}>;
+const stops = trip.stops as Array<{
+  raw_label: string;
+  code: string | null;
+  place_name: string | null;
+}>;
+const observedFlights = trip.observed_flights as Array<{
+  id: string;
+  geometry_json: string;
+  started_at_utc: string;
+  ended_at_utc: string;
+  duration_seconds: number;
+}>;
+
+const pathLines = observedFlights.flatMap((flight) => {
+  const feature = safeJson<Feature<LineString | MultiLineString> | null>(
+    flight.geometry_json,
+    null,
+  );
+  if (!feature) return [];
+  if (feature.geometry?.type === "LineString") return [feature.geometry.coordinates];
+  if (feature.geometry?.type === "MultiLineString") return feature.geometry.coordinates;
+  return [];
+});
+const recordedDates = new Set(
+  observedFlights.flatMap((flight) => [
+    flight.started_at_utc.slice(0, 10),
+    flight.ended_at_utc.slice(0, 10),
+  ]),
+);
+const tripPath: Feature<MultiLineString> | null =
+  pathLines.length > 0
+    ? {
+        type: "Feature",
+        geometry: { type: "MultiLineString", coordinates: pathLines },
+        properties: {
+          label: `${trip.tail_no ?? "Aircraft"} on ${formatDate(String(trip.report_date))}`,
+          detail:
+            recordedDates.size > 1
+              ? `Complete trip path assembled across ${recordedDates.size} calendar days`
+              : "Recorded flight path for this trip",
+        },
+      }
+    : null;
+const routeStops =
+  stops.length > 0
+    ? stops.map((stop) => stop.raw_label)
+    : parseRouteStops(String(trip.raw_route));
+const routeLabel = routeStops.length > 1 ? routeStops.join(" → ") : String(trip.raw_route);
+const cost = trip.effective_cost_cents as number | null;
+const tripFilterPath = (key: "department" | "division", value: string) => {
+  const params = new URLSearchParams([[key, value]]);
+  return `${appPath("/trips", env)}?${params}`;
+};
+const aircraftProfile = getAircraftProfile(
+  String(trip.tail_no ?? ""),
+  String(trip.manufacturer ?? ""),
+);
+const trackingDate =
+  recordedDates.size > 0 ? [...recordedDates].sort()[0] : String(trip.report_date);
+const trackingLinks = [
+  ...(trip.icao_no
+    ? [{
+        label: "ADS-B Exchange",
+        href: `https://globe.adsbexchange.com/?icao=${String(trip.icao_no).toLocaleLowerCase("en-US")}&showTrace=${trackingDate}`,
+      }]
+    : []),
+  ...(trip.tail_no
+    ? [{
+        label: "Flightradar24",
+        href: `https://www.flightradar24.com/data/aircraft/${String(trip.tail_no).toLocaleLowerCase("en-US")}`,
+      }]
+    : []),
+];
+---
+
+<BaseLayout title={`${trip.tail_no ?? "Trip"} on ${trip.report_date}`}>
+  <article class="w-full">
+    <header class="mb-4 flex items-center justify-between gap-6 max-[560px]:flex-col max-[560px]:items-start max-[560px]:gap-[.6rem]">
+      <h1 class="m-0 flex items-center gap-[.65rem] text-[clamp(1.45rem,2.6vw,2rem)] font-[780] tracking-[-.025em] max-[560px]:flex-wrap max-[560px]:items-start [&>span:last-child]:font-[720]">
+        {trip.tail_no ? (
+          <AircraftBadge
+            tailNo={String(trip.tail_no)}
+            type={aircraftProfile.type}
+            href={appPath(aircraftRoute(String(trip.tail_no)), env)}
+          />
+        ) : (
+          <Badge variant="secondary" className="inline-flex h-auto min-h-8 items-center rounded-[.35rem] bg-line px-[.68rem] py-[.38rem] text-[.7em] leading-none font-[850] text-foreground no-underline">Aircraft not specified</Badge>
+        )}
+        <span>on {formatDate(String(trip.report_date))}</span>
+      </h1>
+    </header>
+
+    {tripPath ? (
+      <div>
+        <FlightMap
+          client:visible
+          features={[tripPath]}
+          title="Flight path"
+          vehicle={aircraftProfile.type === "Helicopter" ? "helicopter" : "airplane"}
+          externalLinks={trackingLinks}
+          showToolbar={false}
+          className="rounded-[.45rem] [&_[data-map-canvas]]:min-h-[clamp(18rem,34vw,25rem)]"
+        />
+        <div class="mt-[.45rem] flex items-center justify-end gap-[.35rem] text-[.65rem] text-muted-foreground max-[560px]:justify-center">
+          <Info size={12} aria-hidden="true" />
+          <span>recorded flight path data could be partial or incomplete</span>
+        </div>
+      </div>
+    ) : (
+      <div class="rounded-[.45rem] border border-dashed border-border bg-[color-mix(in_srgb,var(--surface)_70%,transparent)] p-5 text-center text-muted-foreground [&_p]:my-[.3rem] [&_p]:text-[.75rem] [&_strong]:text-[.85rem] [&_strong]:text-foreground">
+        <strong>No recorded flight path is linked to this trip.</strong>
+        <p class="text-muted-foreground">Check back later for updates.</p>
+      </div>
+    )}
+
+    <Card className="mt-[.85rem] min-w-0 gap-0! rounded-[.4rem]! border border-border bg-surface p-[.9rem]! shadow-none ring-0 max-[560px]:p-4! [&>h2]:mb-[.7rem] [&>h2]:text-xl [&>h2]:font-[780] [&>h2]:tracking-[-.015em]">
+      <h2>{routeLabel}</h2>
+      <div class="grid grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] items-start gap-[.85rem] max-[720px]:grid-cols-1">
+        <div class="grid gap-[.8rem] max-[900px]:grid-cols-1">
+          <dl class="m-0 grid grid-cols-2 overflow-hidden rounded-[.35rem] border border-border max-[560px]:grid-cols-1 [&>div]:min-w-0 [&>div]:border-r [&>div]:border-b [&>div]:border-border [&>div]:px-[.68rem] [&>div]:py-[.58rem] [&>div:nth-child(2)]:border-r-0 [&>div:last-child]:border-r-0 [&>div:nth-last-child(-n+2)]:border-b-0 max-[560px]:[&>div]:col-auto max-[560px]:[&>div]:border-r-0 max-[560px]:[&>div]:border-b max-[560px]:[&>div:last-child]:border-b-0 [&_dt]:text-[.65rem] [&_dt]:font-bold [&_dt]:text-muted-foreground [&_dd]:mt-[.2rem] [&_dd]:mb-0 [&_dd]:text-[.9rem] [&_dd]:font-[720] [&_dd_a]:text-[#2a76c6] [&_dd_a]:no-underline [&_dd_a:hover]:underline">
+            <div class:list={{ "col-span-full !border-r-0 max-[560px]:col-auto": !division }}>
+              <dt>Department</dt>
+              <dd><a href={tripFilterPath("department", String(trip.department))}>{trip.department}</a></dd>
+            </div>
+            {division && (
+              <div>
+                <dt>Division</dt>
+                <dd><a href={tripFilterPath("division", division)}>{division}</a></dd>
+              </div>
+            )}
+            <div>
+              <MeasurementToggle
+                client:load
+                kind="flight-hours"
+                value={Number(trip.flight_hours)}
+                compact
+                labels={{ primary: "Flight Hours", secondary: "Flight Time" }}
+              />
+            </div>
+            <div><dt>Invoiced Amount</dt><dd>{formatCurrency(cost)}</dd></div>
+          </dl>
+
+          {(trip.comments || trip.justification) && (
+            <div class="grid gap-[.6rem] [&>div]:rounded-[.35rem] [&>div]:border [&>div]:border-border [&>div]:bg-[color-mix(in_srgb,var(--sky-100)_35%,var(--surface))] [&>div]:px-[.72rem] [&>div]:py-[.62rem] [&_h3]:mb-[.3rem] [&_h3]:text-[.68rem] [&_h3]:tracking-[.08em] [&_h3]:uppercase [&_p]:m-0 [&_p]:text-[.86rem] [&_p]:text-foreground">
+              {trip.comments && <div><h3>Comments</h3><p>{trip.comments}</p></div>}
+              {trip.justification && <div><h3>Justification</h3><p>{trip.justification}</p></div>}
+            </div>
+          )}
+        </div>
+
+        <section class="min-w-0 overflow-hidden rounded-[.35rem] border border-border [&_h3]:m-0 [&_h3]:px-[.68rem] [&_h3]:py-[.58rem] [&_h3]:text-[.65rem] [&_h3]:font-bold [&_h3]:text-muted-foreground [&_ol]:m-0 [&_ol]:grid [&_ol]:list-none [&_ol]:gap-0 [&_ol]:px-[.68rem] [&_ol]:py-[.15rem] [&_li]:grid [&_li]:grid-cols-[1.5rem_minmax(0,1fr)] [&_li]:items-baseline [&_li]:gap-[.35rem] [&_li]:border-b [&_li]:border-border [&_li]:py-[.42rem] [&_li]:text-[.9rem] [&_li]:font-[720] [&_li:last-child]:border-b-0 [&>p]:m-0 [&>p]:px-[.68rem] [&>p]:py-[.65rem] [&>p]:text-[.82rem] [&>p]:text-muted-foreground" aria-labelledby="trip-passengers-heading">
+          <h3 id="trip-passengers-heading">Passengers</h3>
+          {people.length > 0 ? (
+            <ol>
+              {people.map((person, index) => (
+                <li>
+                  <span class="text-[.72rem] font-[650] text-muted-foreground tabular-nums">{index + 1}</span>
+                  <a class="w-fit justify-self-start text-[#2a76c6] no-underline hover:underline" href={appPath(passengerRoute(person.canonical_name), env)}>{person.canonical_name}</a>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p>None listed</p>
+          )}
+        </section>
+      </div>
+
+      <footer class="mt-4 flex flex-wrap items-center justify-start gap-x-[.8rem] gap-y-[.3rem] border-t border-border pt-[.8rem] text-[.65rem] text-muted-foreground [&_a]:font-bold [&_em]:not-italic">
+        <span class="text-[.6rem] font-extrabold tracking-[.06em] text-muted-foreground uppercase">Sources</span>
+        {sources.map((source) => (
+          <a href={appPath(documentRoute({ sourceAgency: source.source_agency, originalFilename: source.original_filename }), env)}>
+            {documentSourceName(source.source_agency)} ({source.original_filename})
+          </a>
+        ))}
+        {sources.length === 0 && <em>No published source document is linked.</em>}
+      </footer>
+    </Card>
+  </article>
+</BaseLayout>

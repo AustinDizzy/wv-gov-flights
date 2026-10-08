@@ -1,0 +1,239 @@
+---
+import "../styles/global.css";
+import "@fontsource/comic-neue/latin-700.css";
+import { Image } from "astro:assets";
+import { env } from "cloudflare:workers";
+import { Mail, Moon, Sun } from "lucide-react";
+import logo from "../assets/logo.png";
+import { Button } from "../components/ui/button";
+import SiteNavigation from "../components/SiteNavigation";
+import { appPath } from "../lib/config";
+
+interface Props {
+  title?: string;
+  description?: string;
+  wide?: boolean;
+  rssPath?: string;
+  rssTitle?: string;
+}
+
+const {
+  title = "Golden Dome Airways",
+  description = "Public records about West Virginia's state aviation fleet.",
+  wide = false,
+  rssPath,
+  rssTitle,
+} = Astro.props;
+const fullTitle = title === "Golden Dome Airways" ? title : `${title} · Golden Dome Airways`;
+const nav = [
+  ["Aircraft", "/aircraft", "aircraft"],
+  ["Passengers", "/passengers", "passengers"],
+  ["Trips", "/trips", "trips"],
+  ["Statistics", "/statistics", "statistics"],
+];
+const currentPath = Astro.url.pathname;
+const homePath = appPath("/", env);
+const isHome = currentPath === homePath || currentPath === `${homePath}/`;
+const socialImage = new URL(appPath("/og.png", env), Astro.url.origin).href;
+const analyticsPrefix = "PUBLIC_ANALYTICS_";
+const analyticsConfig = Object.fromEntries(
+  Object.entries(process.env).flatMap(([key, value]) => {
+    const attribute = key.slice(analyticsPrefix.length).toLowerCase().replaceAll("_", "-");
+    return key.startsWith(analyticsPrefix) && attribute && value?.trim()
+      ? [[attribute, value.trim()]]
+      : [];
+  }),
+);
+const { src: analyticsSrc, ...analyticsData } = analyticsConfig;
+const analyticsAttributes = Object.fromEntries(
+  Object.entries(analyticsData).map(([attribute, value]) => [`data-${attribute}`, value]),
+);
+const navigationItems = nav.map(([label, path, section]) => {
+  const href = appPath(path, env);
+  return {
+    href,
+    label,
+    section,
+    active: currentPath === href || currentPath.startsWith(`${href}/`),
+  };
+});
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="theme-color" content="#071a2e" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:image:width" content="1024" />
+    <meta property="og:image:height" content="512" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+    {rssPath && (
+      <link
+        rel="alternate"
+        type="application/rss+xml"
+        title={rssTitle ?? `${fullTitle} RSS`}
+        href={appPath(rssPath, env)}
+      />
+    )}
+    <link rel="icon" type="image/x-icon" href={appPath("/favicon.ico", env)} />
+    <title>{fullTitle}</title>
+    <script is:inline>
+      (() => {
+        const choice = localStorage.getItem("gda-theme");
+        const dark = choice === "dark" || (!choice && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
+    {import.meta.env.PROD && analyticsSrc && (
+      <script is:inline defer src={analyticsSrc} {...analyticsAttributes}></script>
+    )}
+  </head>
+  <body>
+    <a class="fixed -top-20 left-4 z-[100] rounded-lg bg-surface px-4 py-3 focus:top-4" href="#main">Skip to content</a>
+    <header class="relative z-[1000] isolate border-b border-white/10 bg-navy-950/95 text-white">
+      <div
+        class:list={[
+          "mx-auto flex max-w-[94rem] items-center gap-[clamp(1rem,2vw,2.5rem)] px-[clamp(1rem,3vw,2.5rem)] py-[.55rem] max-[900px]:flex-wrap max-[900px]:justify-center max-[900px]:gap-4",
+          isHome
+            ? "min-h-40 max-[900px]:min-h-36 max-[400px]:min-h-30"
+            : "min-h-22 max-[900px]:min-h-[5.4rem]",
+        ]}
+      >
+        <a class="inline-flex shrink-0 items-center gap-[.65rem] no-underline max-[560px]:min-w-0" href={appPath("/", env)} aria-label="Golden Dome Airways home">
+          <Image
+            src={logo}
+            width={isHome ? 152 : 64}
+            densities={[1, 2]}
+            loading="eager"
+            fetchpriority="high"
+            alt=""
+            class:list={[
+              "block h-auto drop-shadow-[0_3px_8px_rgb(0_0_0_/_30%)]",
+              isHome
+                ? "w-[152px] max-[900px]:w-28 max-[400px]:w-22"
+                : "w-16 max-[900px]:w-14",
+            ]}
+          />
+          <span class="leading-[1.05] tracking-[.01em] max-[560px]:min-w-0">
+            <b
+              class:list={[
+                "block font-brand text-[1.06rem] text-white transition-[font-size]",
+                isHome
+                  ? "text-[1.6rem] max-[900px]:text-[1.3rem] max-[400px]:text-[1.08rem]"
+                  : "",
+              ]}
+            >Golden Dome Airways</b>
+            <small
+              class:list={[
+                "mt-[.28rem] block whitespace-nowrap text-[.53rem] uppercase tracking-[.13em] text-[#cbd9e2] transition-[margin-top,font-size] max-[560px]:text-[.48rem] max-[560px]:tracking-[.085em]",
+                isHome
+                  ? "mt-[.4rem] text-[.68rem] max-[900px]:mt-[.34rem] max-[900px]:text-[.6rem] max-[560px]:text-[.54rem] max-[400px]:text-[.45rem] max-[400px]:tracking-[.045em]"
+                  : "",
+              ]}
+            >
+              <span class="block pl-2 tracking-[.108em] max-[560px]:tracking-[.061em] max-[400px]:tracking-[.016em]">State of West Virginia aircraft records</span>
+              <span
+                class:list={[
+                  "mt-[.34em] flex w-max origin-top-left -rotate-5 flex-col items-start gap-[.08em] font-handwritten text-[.62rem] leading-none font-bold tracking-[.01em] text-gold-300 lowercase",
+                  isHome
+                    ? "text-[.76rem] max-[900px]:text-[.7rem] max-[400px]:text-[.61rem]"
+                    : "",
+                ]}
+              >
+                <span class="ml-[.2rem] block text-[1.18em] leading-[.55]" aria-hidden="true">^</span>
+                <span class="block leading-none">
+                  <span class="opacity-45" aria-hidden="true">(</span>unofficial<span class="opacity-45" aria-hidden="true">)</span>
+                </span>
+              </span>
+            </small>
+          </span>
+        </a>
+        <SiteNavigation items={navigationItems} />
+      </div>
+    </header>
+    <main
+      id="main"
+      class:list={[
+        "mx-auto w-[calc(100%-2rem)] py-[1.35rem] pb-11 max-[560px]:w-[calc(100%-1rem)]",
+        wide ? "max-w-[94rem]" : "max-w-[var(--page-content-max-width)]",
+      ]}
+    >
+      <slot />
+    </main>
+    <footer class="border-t border-border bg-surface text-muted-foreground [&_a]:text-foreground [&_a]:underline [&_a]:decoration-1">
+      <div class="mx-auto grid w-[calc(100%-2rem)] max-w-[var(--page-content-max-width)] grid-cols-[minmax(0,1.8fr)_minmax(18rem,1fr)] items-end gap-[clamp(2rem,6vw,6rem)] py-[1.6rem] pb-8 text-[.73rem] max-[900px]:grid-cols-1 max-[900px]:gap-4 max-[560px]:w-[calc(100%-1rem)] max-[560px]:gap-6">
+        <div class="max-w-2xl [&_p]:m-0 [&_p+p]:mt-2">
+          <p>Information on this site is public record obtained through lawful requests under <a href="https://code.wvlegislature.gov/29B-1/" rel="noopener noreferrer">W. Va. Code § 29B-1-1 et seq. (WVFOIA)</a>. See <a href={appPath("/data-sources", env)}>data sources</a> for the original records and provenance.</p>
+          <p>This site is not affiliated with the government of the State of West Virginia.</p>
+        </div>
+        <div class="flex flex-col items-end gap-[.6rem] max-[900px]:items-start max-[560px]:grid max-[560px]:w-full max-[560px]:grid-cols-[auto_minmax(0,1fr)] max-[560px]:items-center max-[560px]:gap-x-4">
+          <div class="flex flex-wrap items-center justify-end gap-4 max-[900px]:justify-start max-[560px]:contents">
+            <div class="flex flex-wrap justify-end gap-x-4 gap-y-[.45rem] max-[900px]:justify-start max-[560px]:col-span-full max-[560px]:row-start-1 [&_a]:inline-flex [&_a]:items-center [&_a]:gap-[.35rem] [&_a]:font-bold">
+              <a href="mailto:~abs/wv-gov-flights@lists.sr.ht">
+                <Mail className="shrink-0 text-gold-500" size={15} strokeWidth={2} aria-hidden={true} />
+                <span>~abs/wv-gov-flights@lists.sr.ht</span>
+              </a>
+              <a href="https://github.com/AustinDizzy/wv-gov-flights" rel="noopener noreferrer">
+                <img class="shrink-0 dark:invert" src="https://github.githubassets.com/favicons/favicon.svg" width="15" height="15" alt="" />
+                <span>GitHub source</span>
+              </a>
+            </div>
+            <Button className="h-8 w-auto min-w-[3.65rem] shrink-0 cursor-pointer gap-[.08rem] rounded-full p-[.16rem] text-muted-foreground max-[560px]:col-start-1 max-[560px]:row-start-2 max-[560px]:justify-self-start" variant="outline" size="sm" id="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Use dark theme">
+              <Sun className="box-content size-[.9rem] rounded-full bg-gold-300 p-[.2rem] text-navy-950 transition-colors dark:bg-transparent dark:text-muted-foreground" size={16} strokeWidth={2} aria-hidden={true} />
+              <Moon className="box-content size-[.9rem] rounded-full p-[.2rem] text-muted-foreground transition-colors dark:bg-navy-800 dark:text-gold-300" size={16} strokeWidth={2} aria-hidden={true} />
+            </Button>
+          </div>
+          <p class="m-0 max-[560px]:col-start-2 max-[560px]:row-start-2 max-[560px]:justify-self-end max-[560px]:text-right [&_a]:decoration-dotted [&_a:hover]:decoration-solid">
+            A project by <a href="https://abs.codes" rel="noopener noreferrer">a proud Mountaineer</a>.
+            <span class="inline-block bg-[linear-gradient(90deg,var(--navy-800)_50%,var(--gold-500)_50%)] bg-clip-text text-transparent" role="img" aria-label="Blue and gold heart">♥</span>
+          </p>
+        </div>
+      </div>
+    </footer>
+    <script is:inline>
+      const themeToggle = document.getElementById("theme-toggle");
+      const updateThemeToggle = () => {
+        const dark = document.documentElement.dataset.theme === "dark";
+        themeToggle?.setAttribute("aria-checked", String(dark));
+        themeToggle?.setAttribute("aria-label", dark ? "Use light theme" : "Use dark theme");
+        themeToggle?.setAttribute("title", dark ? "Use light theme" : "Use dark theme");
+      };
+      updateThemeToggle();
+      themeToggle?.addEventListener("click", () => {
+        const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem("gda-theme", next);
+        updateThemeToggle();
+      });
+
+      const rowLink = (target) =>
+        target instanceof Element ? target.closest("[data-row-href]") : null;
+      const isInteractive = (target) =>
+        target instanceof Element && Boolean(target.closest("a, button, input, select, textarea, label"));
+      document.addEventListener("click", (event) => {
+        const row = rowLink(event.target);
+        if (!row || isInteractive(event.target)) return;
+        const href = row.dataset.rowHref;
+        if (href) window.location.assign(href);
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        const row = rowLink(event.target);
+        if (!row || isInteractive(event.target)) return;
+        const href = row.dataset.rowHref;
+        if (!href) return;
+        event.preventDefault();
+        window.location.assign(href);
+      });
+    </script>
+  </body>
+</html>

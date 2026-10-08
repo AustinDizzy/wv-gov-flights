@@ -1,0 +1,23 @@
+---
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../../db/client";
+import { listRecentIngestionBatches } from "../../lib/db/admin-queries";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { appPath } from "../../lib/config";
+import { Badge } from "../../components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
+import AdminNavigationActions from "../../components/AdminNavigationActions";
+const batches = await listRecentIngestionBatches(createDatabase(env.DB));
+---
+<BaseLayout title="Contributor workspace">
+  <p class="mb-[.35rem] text-[.68rem] font-extrabold tracking-[.12em] text-gold-500 uppercase">Contributor workspace</p><h1>Ingestion and review</h1>
+  <p class="mt-[.65rem] max-w-3xl text-[.92rem] text-muted-foreground">Signed in as {Astro.locals.user?.email}.</p>
+  <AdminNavigationActions
+    uploadHref={appPath("/admin/upload", env)}
+    matchesHref={appPath("/admin/observed-flights", env)}
+  />
+  <section class="mt-[1.8rem]"><h2>Recent batches</h2><div class="overflow-x-auto rounded-lg border border-border bg-surface shadow-card"><Table><TableHeader><TableRow><TableHead>Created</TableHead><TableHead>Document</TableHead><TableHead>Rows</TableHead><TableHead>State</TableHead></TableRow></TableHeader><TableBody>
+    {batches.results.map((batch) => <TableRow><TableCell>{new Date(batch.created_at).toLocaleString()}</TableCell><TableCell><a href={appPath(`/admin/reports/${batch.id}`, env)}>{batch.original_filename}</a></TableCell><TableCell>{batch.row_count}</TableCell><TableCell><Badge variant="outline">{batch.state}</Badge></TableCell></TableRow>)}
+    {batches.results.length === 0 && <TableRow><TableCell colSpan={4} className="px-6 py-12 text-center text-muted-foreground">No uploads yet.</TableCell></TableRow>}
+  </TableBody></Table></div></section>
+</BaseLayout>

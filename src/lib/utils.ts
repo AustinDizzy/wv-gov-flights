@@ -1,136 +1,85 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-import * as turf from "@turf/turf"
-import { FleetTrip, TripSearchParams, PassengerSearchParams, Aircraft } from '@/types';
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
 }
 
-export function getEmoji(aircraft: Aircraft): string {
-  return aircraft.type === "airplane" ? "✈️" : "🚁";
+export function formatCurrency(
+  cents: number | null | undefined,
+  options: { minimumFractionDigits?: number } = {},
+): string {
+  if (cents == null) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: options.minimumFractionDigits ?? 0,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
 }
 
-export function filterTrips(trips: FleetTrip[], params: TripSearchParams): FleetTrip[] {
-  return trips.filter(trip => {
-    if (params.aircraft && trip.tail_no !== params.aircraft) return false;
-    if (params.department && trip.department !== params.department) return false;
-    if (params.division && trip.division !== params.division) return false;
-    if (params.startDate && trip.date < params.startDate) return false;
-    if (params.endDate && trip.date > params.endDate) return false;
-    if (params.search) {
-      const searchText = `${trip.route} ${trip.passengers} ${trip.department} ${trip.division} ${trip.comments}`.toLowerCase();
-      return searchText.includes(params.search.toLowerCase());
-    }
-    return true;
-  });
+export function formatDate(value: string): string {
+  const date = new Date(`${value}T12:00:00Z`);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
 }
 
-export const filterPassengers = (
-  passengers: Map<string, FleetTrip[]>,
-  { search, aircraft, department }: PassengerSearchParams
-): Map<string, FleetTrip[]> => {
-  if (!search && !aircraft && !department) return passengers;
-
-  const filtered = new Map<string, FleetTrip[]>();
-
-  passengers.forEach((trips, passenger) => {
-    if (search && !passenger.toLowerCase().includes(search.toLowerCase())) return;
-
-    const filteredTrips = trips.filter(trip =>
-      (!aircraft || trip.tail_no === aircraft) &&
-      (!department || trip.department === department)
-    );
-
-    if (filteredTrips.length) filtered.set(passenger, filteredTrips);
-  });
-  return filtered;
-};
-
-
-export function isValidDate(dateString: string) {
-  return [
-    /^\d{4}-\d{1,2}-\d{1,2}$/.test(dateString),
-    Number(dateString.split('-')[0]) >= 2010,
-    Number(dateString.split('-')[1]) <= 12,
-    Number(dateString.split('-')[2]) <= 31,
-    Number(dateString.split('-')[2]) >= 1
-  ].every(Boolean)
-}
-
-export function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
-export function formatDuration(hours: number): string {
-  const totalMinutes = Math.round(hours * 60)
-  const hr = Math.floor(totalMinutes / 60)
-  const min = totalMinutes % 60
-  return `${min > 0 ? '~' : ''}${hr > 0 ? hr + 'h' : ''}${min > 0 ? (hr > 0 ? min.toString().padStart(2, '0') : min) + 'm' : ''}`
-}
-
-
-// Takes a name and returns a slugified version of it (ex. 'Hello World' -> 'hello-world')
-export function parseNameSlug(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
+export function normalizePersonName(value: string): string {
+  return value
+    .normalize("NFKC")
+    .replace(/\s+/g, " ")
+    .replace(/^[,;|\s]+|[,;|\s]+$/g, "")
     .trim();
 }
 
-// Takes a slug and returns a formatted version of it (ex. 'hello-world' -> 'Hello World')
-export function formatNameSlug(name: string): string {
-  return name
-    .trim()
-    .replace(/-+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, l => l.toUpperCase());
+export function parsePassengers(value: string | null | undefined): string[] {
+  if (!value?.trim()) return [];
+  return value
+    .split(/\s*(?:,|;|\||\n)\s*/)
+    .map(normalizePersonName)
+    .filter(Boolean);
 }
 
-export function parseWKT(wkt: string): [number, number][] {
-  if (!wkt.startsWith("LINESTRING")) throw new Error("Unsupported WKT type.");
-  return wkt
-    .trim()
-    .replace("LINESTRING", "")
-    .trim()
-    .replace(/\(|\)/g, "")
-    .split(",")
-    .map(coord => coord.trim().split(" ").map(Number).reverse() as [number, number]);
-};
-
-export function calcDistance(lines: string[], units: "nauticalmiles" | "kilometers" = "nauticalmiles"): number {
-  return lines
-    .map(parseWKT)
-    .filter(wkt => wkt.length > 1)
-    .filter(wkt => wkt.length > 1)
-    .map(wkt => turf.lineString(wkt))
-    .map(line => turf.length(line, { units: units }))
-    .reduce((a, b) => a + b, 0);
+export function parseRouteStops(value: string): string[] {
+  return value
+    .split(/\s*(?:→|->|–|—|\bTO\b|\bVIA\b|\/|-)\s*/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
-export function getPax(passengers?: string): string[] {
-  if (!passengers) return [];
-  return passengers.split(',')
-    .map(p => p.trim())
-    .map(p => p.split(/;(?=(?:[^()]*\([^()]*\))*[^()]*$)/))
-    .flat()
-    .map(p => p.trim())
-    .filter(p => p.length > 0);
+export function centsFromDollars(value: number | null): number | null {
+  return value == null ? null : Math.round((value + Number.EPSILON) * 100);
 }
 
-export function getPaxMap(passengers?: string): Record<string, string> {
-  if (!passengers) return {};
-  return Object.fromEntries(getPax(passengers).map(p => [parseNameSlug(p), p]));
+export function safeJson<T>(value: string | null | undefined, fallback: T): T {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
 }
 
-export function hasPax(passengers: string | undefined, slug: string): boolean {
-  if (!passengers) return false;
-  return getPaxMap(passengers).hasOwnProperty(slug.trim());
+export function json(data: unknown, init: ResponseInit = {}): Response {
+  const headers = new Headers(init.headers);
+  headers.set("content-type", "application/json; charset=utf-8");
+  headers.set("cache-control", "no-store");
+  return new Response(JSON.stringify(data), { ...init, headers });
+}
+
+export function newId(prefix: string): string {
+  return `${prefix}_${crypto.randomUUID()}`;
+}
+
+export async function stableId(prefix: string, value: string): Promise<string> {
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  const hex = [...new Uint8Array(hash)]
+    .slice(0, 16)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+  return `${prefix}_${hex}`;
 }

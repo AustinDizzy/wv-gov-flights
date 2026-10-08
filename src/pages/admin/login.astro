@@ -1,0 +1,16 @@
+---
+import { env } from "cloudflare:workers";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import AdminSignIn from "../../components/AdminSignIn";
+import { absoluteAppUrl, appPath } from "../../lib/config";
+import { Card, CardContent, CardHeader } from "../../components/ui/card";
+if (Astro.locals.isAdmin) return Astro.redirect(appPath("/admin", env), 303);
+---
+<BaseLayout title="Contributor sign in">
+  <Card className="max-w-[52rem] [&_p]:text-muted-foreground [&_li]:text-muted-foreground">
+    <CardHeader><h1>Restricted contributor access</h1></CardHeader>
+    <CardContent>
+      <AdminSignIn client:load authBasePath={appPath("/api/auth", env)} callbackURL={absoluteAppUrl("/admin", env)} />
+    </CardContent>
+  </Card>
+</BaseLayout>

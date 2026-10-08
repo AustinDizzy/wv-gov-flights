@@ -1,0 +1,11 @@
+ADMIN_EMAILS=admin@example.com
+BETTER_AUTH_SECRET=replace-with-at-least-32-random-characters
+GOOGLE_CLIENT_ID=replace-me
+GOOGLE_CLIENT_SECRET=replace-me
+MISTRAL_API_KEY=replace-me
+# Optional. Set this only when the configured Globe provider requires an API key.
+GLOBE_API_KEY=
+
+# Optional. SRC enables analytics in production; other suffixes become data-* attributes.
+PUBLIC_ANALYTICS_SRC=
+PUBLIC_ANALYTICS_SITE_ID=

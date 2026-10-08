@@ -1,0 +1,128 @@
+---
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../db/client";
+import MetricChartGroup from "../components/MetricChartGroup";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import MeasurementToggle from "../components/MeasurementToggle";
+import { appPath } from "../lib/config";
+import { getStatisticsPageData } from "../lib/db/public-queries";
+import { aircraftRoute, passengerRoute } from "../lib/public-routes";
+import { formatCurrency, formatDate } from "../lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
+
+const { overview, agencies, yearly, aircraft, passengers, observedFlights } =
+  await getStatisticsPageData(createDatabase(env.DB));
+const observedNmi = observedFlights.results.reduce(
+  (total, flight) => total + Number(flight.distance_nmi),
+  0,
+);
+const observedNmiByYear = observedFlights.results.reduce<Record<string, number>>((years, flight) => {
+  const year = flight.started_at_utc.slice(0, 4);
+  years[year] = (years[year] ?? 0) + Number(flight.distance_nmi);
+  return years;
+}, {});
+const yearlyByYear = new Map(yearly.results.map((item) => [item.year, item]));
+const timeSeries = [...new Set([...yearlyByYear.keys(), ...Object.keys(observedNmiByYear)])]
+  .sort()
+  .map((year) => ({
+    label: year,
+    trips: yearlyByYear.get(year)?.trips ?? 0,
+    hours: yearlyByYear.get(year)?.hours ?? 0,
+    distance: observedNmiByYear[year] ?? 0,
+  }));
+const chartBreakdowns = [
+  {
+    category: "aircraft",
+    items: aircraft.results.map((item) => ({
+      label: item.tail_no,
+      href: appPath(aircraftRoute(item.tail_no), env),
+      meta: item.display_name,
+      trips: item.trips,
+      hours: item.hours,
+      distance: item.distance_nmi,
+    })),
+  },
+  {
+    category: "passenger",
+    items: passengers.results.map((item) => ({
+      label: item.canonical_name,
+      href: appPath(passengerRoute(item.canonical_name), env),
+      trips: item.trips,
+      hours: item.hours,
+      distance: item.distance_nmi,
+    })),
+  },
+];
+
+const dateRange =
+  overview?.first_trip && overview.latest_trip
+    ? `${formatDate(overview.first_trip)}–${formatDate(overview.latest_trip)}`
+    : "No published date range";
+const departmentTripsPath = (department: string) =>
+  `${appPath("/trips", env)}?${new URLSearchParams({ department })}`;
+---
+
+<BaseLayout title="Statistics">
+  <header class="mb-4 flex items-baseline justify-between gap-6 border-b border-border pb-[.8rem] max-[560px]:flex-col max-[560px]:items-start max-[560px]:gap-1">
+    <h1 class="text-2xl font-[780] tracking-[-.02em]">Statistics</h1>
+    <p class="m-0 text-[.78rem] text-muted-foreground">{dateRange}</p>
+  </header>
+
+  <section
+    class="grid grid-cols-5 overflow-hidden rounded-[.4rem] border border-border bg-surface max-[900px]:grid-cols-3 max-[560px]:grid-cols-2 [&>div]:min-w-0 [&>div]:border-r [&>div]:border-border [&>div]:px-[.8rem] [&>div]:py-[.65rem] [&>div:last-child]:border-r-0 max-[900px]:[&>div]:border-b max-[900px]:[&>div:nth-child(3n)]:border-r-0 max-[560px]:[&>div]:border-r max-[560px]:[&>div]:border-b max-[560px]:[&>div:nth-child(even)]:border-r-0 max-[560px]:[&>div:last-child:nth-child(odd)]:col-span-full max-[560px]:[&>div:last-child:nth-child(odd)]:border-r-0 [&_span]:block [&_span]:text-[.6rem] [&_span]:font-[750] [&_span]:tracking-[.06em] [&_span]:text-muted-foreground [&_span]:uppercase [&_strong]:mt-[.1rem] [&_strong]:block [&_strong]:text-[1.05rem] [&_strong]:leading-[1.2] [&_strong]:[overflow-wrap:anywhere]"
+    aria-label="Dataset totals"
+  >
+    <div><span>Reported trips</span><strong>{(overview?.trips ?? 0).toLocaleString()}</strong></div>
+    <div><span>Passengers</span><strong>{(overview?.passengers ?? 0).toLocaleString()}</strong></div>
+    <div>
+      <MeasurementToggle
+        client:load
+        kind="flight-hours"
+        value={overview?.hours ?? 0}
+        compact
+        valueElement="strong"
+        labels={{ primary: "Flight hours", secondary: "Flight time" }}
+      />
+    </div>
+    <div><span>Observed distance</span><strong><MeasurementToggle client:load kind="distance" value={observedNmi} compact /></strong></div>
+    <div><span>Cost</span><strong>{formatCurrency(overview?.cost ?? 0)}</strong></div>
+  </section>
+
+  <section class="mt-7">
+    <MetricChartGroup
+      client:load
+      series={timeSeries}
+      breakdowns={chartBreakdowns}
+    />
+  </section>
+
+  <section class="mt-7">
+    <div class="mb-[.55rem] flex items-baseline justify-between gap-4">
+      <h2 class="m-0 text-[1.15rem] font-extrabold tracking-[-.01em]">Trips, hours, and cost by agency</h2>
+    </div>
+    <div class="overflow-x-auto rounded-lg border border-border bg-surface shadow-card">
+      <Table>
+        <TableHeader><TableRow><TableHead>Department</TableHead><TableHead>Trips</TableHead><TableHead>Hours</TableHead><TableHead>Cost</TableHead><TableHead>Avg. cost per person</TableHead></TableRow></TableHeader>
+        <TableBody>
+          {agencies.results.map((item) => (
+            <TableRow>
+              <TableCell><strong><a href={departmentTripsPath(item.department)}>{item.department}</a></strong></TableCell>
+              <TableCell>{item.trips.toLocaleString()}</TableCell>
+              <TableCell>{item.hours.toLocaleString(undefined, { maximumFractionDigits: 1 })}</TableCell>
+              <TableCell>{formatCurrency(item.cost)}</TableCell>
+              <TableCell>{item.passenger_count > 0 ? formatCurrency(item.cost / item.passenger_count) : "—"}</TableCell>
+            </TableRow>
+          ))}
+          {agencies.results.length === 0 && <TableRow><TableCell colSpan={5} className="px-6 py-12 text-center text-muted-foreground">No statistics are available yet.</TableCell></TableRow>}
+        </TableBody>
+      </Table>
+    </div>
+  </section>
+</BaseLayout>
