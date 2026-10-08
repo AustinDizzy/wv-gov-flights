@@ -1,0 +1,71 @@
+---
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../../../db/client";
+import { getBatchReviewPageData } from "../../../lib/db/admin-queries";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import ReportReview from "../../../components/ReportReview";
+import type { ReviewRow, ReviewTrip } from "../../../components/ReportReview";
+import { absoluteAppUrl, appPath } from "../../../lib/config";
+import { documentRoute, pendingDocumentRoute } from "../../../lib/public-routes";
+import { safeJson } from "../../../lib/utils";
+export const prerender = false;
+const reviewData = await getBatchReviewPageData(
+  createDatabase(env.DB),
+  Astro.params.id,
+);
+if (!reviewData) return Astro.redirect(appPath("/admin", env), 302);
+const { batch, rows: result } = reviewData;
+const emptyTrip: ReviewTrip = {
+  source_page: 0,
+  source_row: 0,
+  date: "",
+  tail_no: null,
+  department: "",
+  division: null,
+  flight_hours: 0,
+  route: "",
+  passengers: null,
+  comments: null,
+  invoiced_amount: null,
+  warnings: ["The staged row could not be decoded. Review it before publication."],
+};
+const rows: ReviewRow[] = result.results.map((row) => ({
+  id: row.id,
+  trip: safeJson<ReviewTrip>(row.edited_json || row.extracted_json, emptyTrip),
+  warnings: safeJson<string[]>(row.warnings_json, []),
+  errors: safeJson<string[]>(row.validation_errors_json, []),
+  action: row.review_action,
+  existingTripId: row.existing_trip_id,
+  duplicates: safeJson<string[]>(row.duplicate_candidates_json, []),
+  flightCandidates: safeJson<string[]>(row.flight_candidate_ids_json, []),
+}));
+const pdfRoute = batch.source_agency
+  ? documentRoute({
+      sourceAgency: batch.source_agency,
+      originalFilename: String(batch.original_filename),
+    })
+  : pendingDocumentRoute(String(batch.sha256), String(batch.original_filename));
+const pdfUrl = absoluteAppUrl(pdfRoute, env);
+let workflowStatus: string | null = null;
+let workflowError = batch.error_message;
+if (batch.workflow_instance_id) {
+  try {
+    const instance = await env.REPORT_INGESTION.get(batch.workflow_instance_id);
+    const status = await instance.status();
+    workflowStatus = status.status;
+    workflowError ??= status.error?.message ?? null;
+  } catch {
+    workflowStatus = "unknown";
+  }
+}
+---
+<BaseLayout title={`Review ${batch.original_filename}`} wide>
+  <header class="[&_h1]:truncate [&_h1]:text-[clamp(1.45rem,2.5vw,2.15rem)] [&_h1]:font-[760] [&_h1]:tracking-[-.025em]">
+    <p class="mb-[.35rem] text-[.68rem] font-extrabold tracking-[.12em] text-gold-500 uppercase">Batch {batch.state}</p>
+    <h1>{batch.original_filename}</h1>
+  </header>
+  <div class="mt-5 grid grid-cols-[minmax(20rem,.85fr)_minmax(42rem,1.55fr)] items-start gap-4 max-[900px]:grid-cols-1">
+    <iframe class="sticky top-4 min-h-[calc(100vh-2rem)] w-full rounded-[.8rem] border border-border bg-white max-[900px]:static max-[900px]:min-h-[60vh]" title="Uploaded PDF" src={pdfUrl}></iframe>
+    <ReportReview client:load initialRows={rows} batchState={String(batch.state)} workflowStatus={workflowStatus} batchError={workflowError} rowEndpoint={appPath(`/api/admin/batches/${Astro.params.id}/rows`, env)} publishEndpoint={appPath(`/api/admin/batches/${Astro.params.id}/publish`, env)} retryEndpoint={appPath(`/api/admin/batches/${Astro.params.id}/retry`, env)} flightBasePath={appPath("/trips/observed", env)} />
+  </div>
+</BaseLayout>

@@ -1,0 +1,42 @@
+---
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../../db/client";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import TripTableListing from "../../components/TripTableListing.astro";
+import { appPath } from "../../lib/config";
+import { listTripFilterOptions, listTrips } from "../../lib/db/public";
+import { tripTableHref } from "../../lib/trip-table";
+import { Rss } from "lucide-react";
+
+const tripsPath = appPath("/trips", env);
+const canonicalHref = tripTableHref(tripsPath, Astro.url);
+if (`${Astro.url.pathname}${Astro.url.search}` !== canonicalHref) {
+  return Astro.redirect(canonicalHref, 302);
+}
+const [result, filterOptions] = await Promise.all([
+  listTrips(createDatabase(env.DB), Astro.url),
+  listTripFilterOptions(createDatabase(env.DB)),
+]);
+const requestedPage = Number(Astro.url.searchParams.get("page") ?? "1");
+if (Number.isSafeInteger(requestedPage) && requestedPage !== result.page) {
+  return Astro.redirect(tripTableHref(tripsPath, Astro.url, { page: String(result.page) }), 302);
+}
+---
+
+<BaseLayout title="Trips" rssPath="/trips.rss" rssTitle="Golden Dome Airways — New trips">
+  <header class="mb-[.65rem] flex items-center justify-between gap-4">
+    <h1 class="m-0 text-2xl font-[780] tracking-[-.02em]">Trips</h1>
+    <a class="inline-flex w-fit shrink-0 items-center gap-[.28rem] whitespace-nowrap text-[.72rem] font-[750] text-muted-foreground no-underline hover:text-foreground hover:underline" href={appPath("/trips.rss", env)}>
+      <Rss size={14} aria-hidden="true" />
+      <span>RSS</span>
+    </a>
+  </header>
+  <TripTableListing
+    action={tripsPath}
+    currentUrl={Astro.url}
+    result={result}
+    filterOptions={filterOptions}
+    tripBasePath={tripsPath}
+    aircraftBasePath={appPath("/aircraft", env)}
+  />
+</BaseLayout>

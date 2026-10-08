@@ -1,0 +1,152 @@
+---
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../../db/client";
+import MetricChartGroup from "../../components/MetricChartGroup";
+import TripTableListing from "../../components/TripTableListing.astro";
+import MeasurementToggle from "../../components/MeasurementToggle";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { appPath } from "../../lib/config";
+import {
+  listTripFilterOptions,
+  listTrips,
+} from "../../lib/db/public";
+import { getPassengerProfileData } from "../../lib/db/public-queries";
+import {
+  aircraftRoute,
+  findPersonByPublicParam,
+  passengerRoute,
+} from "../../lib/public-routes";
+import { formatCurrency, formatDate } from "../../lib/utils";
+import { tripTableHref } from "../../lib/trip-table";
+
+export const prerender = false;
+
+const param = Astro.params.id ?? "";
+const db = createDatabase(env.DB);
+const person = await findPersonByPublicParam(db, param);
+if (!person) return Astro.redirect(appPath("/passengers", env), 302);
+
+const canonicalRoute = passengerRoute(person.canonical_name);
+const passengerPath = appPath(canonicalRoute, env);
+const canonicalHref = tripTableHref(passengerPath, Astro.url);
+if (param !== canonicalRoute.split("/").at(-1)) {
+  return Astro.redirect(canonicalHref, 301);
+}
+if (`${Astro.url.pathname}${Astro.url.search}` !== canonicalHref) {
+  return Astro.redirect(canonicalHref, 302);
+}
+
+const scope = { personId: person.id };
+const [profileData, tripResult, filterOptions] = await Promise.all([
+  getPassengerProfileData(db, person.id),
+  listTrips(db, Astro.url, scope),
+  listTripFilterOptions(db, scope),
+]);
+const { metrics, yearly, aircraft, agencies } = profileData;
+const tripDateRange = metrics?.first_trip && metrics.latest_trip
+  ? metrics.first_trip === metrics.latest_trip
+    ? `on ${formatDate(metrics.first_trip)}`
+    : `from ${formatDate(metrics.first_trip)}–${formatDate(metrics.latest_trip)}`
+  : "No dated trips";
+const requestedPage = Number(Astro.url.searchParams.get("page") ?? "1");
+if (Number.isSafeInteger(requestedPage) && requestedPage !== tripResult.page) {
+  return Astro.redirect(
+    tripTableHref(passengerPath, Astro.url, { page: String(tripResult.page) }),
+    302,
+  );
+}
+const timeSeries = yearly.results.map((item) => ({
+  label: item.year,
+  trips: item.trip_count,
+  hours: item.flight_hours,
+  distance: item.distance_nmi,
+}));
+const chartBreakdowns = [
+  {
+    category: "aircraft",
+    style: "percentage" as const,
+    items: aircraft.results.map((item) => ({
+      label: item.tail_no,
+      href: appPath(aircraftRoute(item.tail_no), env),
+      meta: item.display_name,
+      trips: item.trip_count,
+      hours: item.flight_hours,
+      distance: item.distance_nmi,
+    })),
+  },
+  {
+    category: "agency",
+    style: "percentage" as const,
+    wide: true,
+    items: agencies.results.map((item) => ({
+      label: item.department,
+      trips: item.trip_count,
+      hours: item.flight_hours,
+      distance: item.distance_nmi,
+    })),
+  },
+];
+
+---
+
+<BaseLayout title={person.canonical_name}>
+  <header class="mb-3 border-b border-border pb-[.65rem] [&_h1]:text-[1.45rem] [&_h1]:font-extrabold [&_h1]:tracking-[-.02em]">
+    <h1>{person.canonical_name}</h1>
+  </header>
+
+  <section
+    class="grid grid-cols-4 overflow-hidden rounded-[.4rem] border border-border bg-surface max-[900px]:grid-cols-2 [&>div]:min-w-0 [&>div]:border-r [&>div]:border-border [&>div]:px-[.8rem] [&>div]:py-[.65rem] [&>div:last-child]:border-r-0 max-[900px]:[&>div]:border-b max-[900px]:[&>div:nth-child(even)]:border-r-0 [&_span]:block [&_span]:text-[.6rem] [&_span]:font-[750] [&_span]:tracking-[.06em] [&_span]:text-muted-foreground [&_span]:uppercase [&_strong]:mt-[.1rem] [&_strong]:block [&_strong]:text-[1.05rem] [&_strong]:leading-[1.2] [&_strong]:[overflow-wrap:anywhere]"
+    aria-label={`${person.canonical_name} trip summary`}
+  >
+    <div>
+      <span>Trips</span>
+      <strong>{(metrics?.trip_count ?? 0).toLocaleString()}</strong>
+      <small class="mt-[.22rem] block text-[.62rem] leading-[1.3] font-medium text-muted-foreground">{tripDateRange}</small>
+    </div>
+    <div>
+      <MeasurementToggle
+        client:load
+        kind="flight-hours"
+        value={metrics?.flight_hours ?? 0}
+        compact
+        valueElement="strong"
+        labels={{ primary: "Flight hours", secondary: "Flight time" }}
+      />
+      <small class="mt-[.22rem] block text-[.62rem] leading-[1.3] font-medium text-muted-foreground">reported by the WV Aviation Division</small>
+    </div>
+    <div>
+      <span>Distance traveled</span>
+      <strong><MeasurementToggle client:load kind="distance" value={metrics?.distance_nmi ?? 0} compact /></strong>
+      <small class="mt-[.22rem] block text-[.62rem] leading-[1.3] font-medium text-muted-foreground">at minimum, for known observed flight paths</small>
+    </div>
+    <div>
+      <span>Attributed Cost</span>
+      <strong>{formatCurrency(metrics?.passenger_cost ?? 0)}</strong>
+      <small class="mt-[.22rem] block text-[.62rem] leading-[1.3] font-medium text-muted-foreground [&_b]:font-[650]">passenger's share of <b>{formatCurrency(metrics?.total_cost ?? 0)}</b> total trip costs</small>
+    </div>
+  </section>
+
+  <section class="mt-7">
+    <MetricChartGroup
+      client:load
+      series={timeSeries}
+      breakdowns={chartBreakdowns}
+      seriesWide={false}
+    />
+  </section>
+
+  <section class="mt-7">
+    <div class="mb-[.55rem] flex items-baseline justify-between gap-4">
+      <h2 class="m-0 text-[1.15rem] font-extrabold tracking-[-.01em]">Trips naming {person.canonical_name}</h2>
+    </div>
+    <TripTableListing
+      action={passengerPath}
+      currentUrl={Astro.url}
+      result={tripResult}
+      filterOptions={filterOptions}
+      tripBasePath={appPath("/trips", env)}
+      aircraftBasePath={appPath("/aircraft", env)}
+      emptyMessage="No published trips name this passenger."
+    />
+  </section>
+</BaseLayout>

@@ -1,0 +1,56 @@
+---
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../../db/client";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAircraftProfile } from "../../lib/aircraft-profile";
+import { appPath } from "../../lib/config";
+import { listAircraftPage } from "../../lib/db/public-queries";
+import { aircraftRoute } from "../../lib/public-routes";
+import { formatCurrency } from "../../lib/utils";
+
+const items = await listAircraftPage(createDatabase(env.DB));
+
+const activeAircraftCount = items.results.filter((item) => item.active).length;
+const decommissionedAircraftCount = items.results.length - activeAircraftCount;
+---
+<BaseLayout title="Aircraft">
+  <header class="mb-4 flex items-baseline justify-between gap-6 border-b border-border pb-[.8rem] max-[560px]:flex-col max-[560px]:items-start max-[560px]:gap-1">
+    <h1 class="text-2xl font-[780] tracking-[-.02em]">Aircraft</h1>
+    <p class="m-0 text-[.78rem] text-muted-foreground">{activeAircraftCount} active, {decommissionedAircraftCount} decommissioned</p>
+  </header>
+  <div class="overflow-hidden rounded-[.45rem] border border-border bg-surface shadow-card max-[560px]:overflow-x-auto">
+    {items.results.map((item) => (
+      (() => {
+        const profile = getAircraftProfile(item.tail_no, item.manufacturer);
+        const href = appPath(aircraftRoute(item.tail_no), env);
+        return (
+          <article class="grid min-h-28 cursor-pointer grid-cols-[8.5rem_minmax(15rem,1.25fr)_minmax(23rem,1fr)_1.5rem] items-center gap-4 border-b border-border py-[.65rem] pr-[.9rem] pl-[.65rem] last:border-b-0 hover:bg-muted/50 focus-visible:relative focus-visible:z-1 focus-visible:outline-[3px] focus-visible:outline-gold-500 focus-visible:outline-offset-[-3px] max-[1180px]:grid-cols-[7.5rem_minmax(13rem,1fr)_minmax(20rem,1fr)_1.25rem] max-[900px]:grid-cols-[6.5rem_minmax(12rem,1fr)_minmax(18rem,1fr)_1.25rem] max-[900px]:gap-3 max-[560px]:min-h-[5.75rem] max-[560px]:min-w-[23rem] max-[560px]:grid-cols-[5rem_minmax(10rem,1fr)_1.25rem] max-[560px]:p-2" data-row-href={href} tabindex="0" aria-label={`View ${item.tail_no}`}>
+            {profile.image ? (
+              <a class="relative block h-[5.65rem] w-[8.5rem] overflow-hidden rounded-sm bg-navy-900 max-[1180px]:w-[7.5rem] max-[900px]:h-[4.75rem] max-[900px]:w-[6.5rem] max-[560px]:h-16 max-[560px]:w-20" href={href}>
+                <img class="h-full w-full object-cover" src={profile.image} alt={`${item.tail_no}, ${item.display_name}`} loading="lazy" referrerpolicy="no-referrer" />
+              </a>
+            ) : (
+              <a class="relative grid h-[5.65rem] min-h-0 w-[8.5rem] items-end justify-items-start overflow-hidden rounded-sm bg-[radial-gradient(circle_at_80%_15%,rgb(240_204_113_/_20%),transparent_40%),linear-gradient(145deg,var(--navy-800),var(--navy-950))] p-2 text-white/65 before:absolute before:inset-[24%_-15%] before:-rotate-[18deg] before:rounded-full before:border before:border-white/10 before:content-[''] after:absolute after:inset-[33%_-4%] after:-rotate-[18deg] after:rounded-full after:border after:border-white/10 after:content-[''] max-[1180px]:w-[7.5rem] max-[900px]:h-[4.75rem] max-[900px]:w-[6.5rem] max-[560px]:h-16 max-[560px]:w-20 [&>span]:relative [&>span]:z-1 [&>span]:text-[.7rem] [&>span]:font-extrabold [&>span]:tracking-[.14em] [&>span]:uppercase" href={href} aria-label={`View ${item.tail_no}`}>
+                <span>{profile.type === "Helicopter" ? "Rotorcraft" : "Fixed wing"}</span>
+              </a>
+            )}
+            <div class="min-w-0 [&_h2]:mt-1 [&_h2]:mb-[.1rem] [&_h2]:text-xl [&_h2]:font-[820] [&_h2_a]:no-underline">
+              <div class="flex items-center text-[.7rem] font-extrabold tracking-[.1em] text-muted-foreground uppercase">
+                {item.active ? "Active" : "Decommissioned"} · {profile.type}
+              </div>
+              <h2><a href={href}>{item.tail_no}</a></h2>
+              <p class="m-0 min-h-0 truncate text-[.76rem] text-muted-foreground">{item.display_name}</p>
+            </div>
+            <dl class="m-0 grid grid-cols-3 max-[560px]:hidden [&_div]:border-l [&_div]:border-border [&_div]:px-3 [&_div]:py-[.2rem] max-[900px]:[&_div]:px-2 [&_dt]:text-[.58rem] [&_dt]:font-[750] [&_dt]:tracking-[.07em] [&_dt]:text-muted-foreground [&_dt]:uppercase [&_dd]:mt-[.15rem] [&_dd]:mb-0 [&_dd]:text-[.84rem] [&_dd]:font-extrabold [&_dd]:whitespace-nowrap [&_small]:text-[.58rem] [&_small]:font-medium [&_small]:text-muted-foreground">
+              <div><dt>Rate</dt><dd>{formatCurrency(item.hourly_cost_cents)}<small>/hr</small></dd></div>
+              <div><dt>Trips</dt><dd>{item.trip_count.toLocaleString()}</dd></div>
+              <div><dt>Hours</dt><dd>{item.flight_hours.toLocaleString(undefined, { maximumFractionDigits: 1 })}</dd></div>
+            </dl>
+            <a class="text-right text-xl text-gold-500 no-underline" href={href} aria-label={`View ${item.tail_no}`}>→</a>
+          </article>
+        );
+      })()
+    ))}
+    {items.results.length === 0 && <p class="p-5 text-center text-muted-foreground">Aircraft will appear here when records are available.</p>}
+  </div>
+</BaseLayout>

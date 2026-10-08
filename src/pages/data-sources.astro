@@ -1,0 +1,75 @@
+---
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../db/client";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { appPath } from "../lib/config";
+import { documentRoute, documentSourceName } from "../lib/public-routes";
+import { formatDate } from "../lib/utils";
+import { dataSourceSort, listDataSourcesPage } from "../lib/db/public-queries";
+import { Rss } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
+const dataSourcesPath = appPath("/data-sources", env);
+const requestedSort = Astro.url.searchParams.get("sort")?.trim();
+const sort = dataSourceSort(requestedSort);
+const canonicalHref = sort === "oldest" ? dataSourcesPath : `${dataSourcesPath}?sort=${sort}`;
+if (`${Astro.url.pathname}${Astro.url.search}` !== canonicalHref) {
+  return Astro.redirect(canonicalHref, 302);
+}
+const documents = await listDataSourcesPage(createDatabase(env.DB), sort);
+---
+<BaseLayout title="Data sources" rssPath="/data-sources.rss" rssTitle="Golden Dome Airways — New data sources">
+  <header class="mb-[1.15rem]">
+    <div class="flex items-baseline justify-start gap-[.65rem]">
+      <h1>Data sources</h1>
+      <a class="inline-flex w-fit shrink-0 items-center gap-[.28rem] whitespace-nowrap text-[.72rem] font-[750] text-muted-foreground no-underline hover:text-foreground hover:underline" href={appPath("/data-sources.rss", env)}>
+        <Rss size={14} aria-hidden="true" />
+        <span>RSS</span>
+      </a>
+    </div>
+    <p class="mt-[.55rem] mb-0 max-w-6xl text-[.82rem] text-muted-foreground">These original public records support the trip routes, passengers, justifications, costs, and other details on this site. Most were obtained from government agencies through the <a href="https://code.wvlegislature.gov/29B-1/" rel="noopener noreferrer">West Virginia Freedom of Information Act</a>.</p>
+  </header>
+  <div class="my-[.65rem] mb-[.45rem] flex justify-end">
+    <form class="flex items-center gap-[.4rem] [&_label]:block [&_label]:text-[.68rem] [&_label]:font-extrabold [&_label]:text-muted-foreground [&_select]:min-h-8 [&_select]:w-auto [&_select]:min-w-[7.5rem] [&_select]:rounded-[.35rem] [&_select]:px-[.55rem] [&_select]:py-[.3rem] [&_select]:pr-[1.8rem] [&_select]:text-[.72rem] [&_select]:text-foreground" method="get" action={dataSourcesPath}>
+      <label for="data-source-sort">Sort</label>
+      <select id="data-source-sort" name="sort" onchange="this.form.submit()">
+        <option value="oldest" selected={sort === "oldest"}>Oldest first</option>
+        <option value="newest" selected={sort === "newest"}>Newest first</option>
+        <option value="data" selected={sort === "data"}>Data</option>
+      </select>
+    </form>
+  </div>
+  <div class="overflow-x-auto rounded-lg border border-border bg-surface shadow-card [&_table]:text-[.78rem] [&_th]:px-[.65rem] [&_th]:py-[.55rem] [&_th]:align-middle [&_th]:text-[.59rem] [&_td]:px-[.65rem] [&_td]:py-[.55rem] [&_td]:align-middle [&_td:first-child]:min-w-60 [&_td:nth-child(3)]:max-w-[26rem] [&_td_strong]:block [&_td_small]:mt-[.14rem] [&_td_small]:block [&_td_small]:text-[.62rem] [&_td_small]:font-medium [&_td_small]:text-muted-foreground [&_td_a]:font-bold [&_td_a]:text-[#276fb5] [&_td_a]:[overflow-wrap:anywhere]">
+    <Table>
+      <TableHeader>
+        <TableRow><TableHead>Record</TableHead><TableHead>Date</TableHead><TableHead>File</TableHead><TableHead>Data</TableHead></TableRow>
+      </TableHeader>
+      <TableBody>
+        {documents.results.map((document) => (
+          <TableRow className="cursor-pointer focus-visible:relative focus-visible:z-1 focus-visible:outline-[3px] focus-visible:outline-gold-500 focus-visible:outline-offset-[-3px]" data-row-href={appPath(documentRoute({ sourceAgency: document.source_agency, originalFilename: document.original_filename }), env)} tabIndex={0} aria-label={`Open ${document.original_filename}`}>
+            <TableCell>
+              <strong>{document.title ?? "Public-record response"}</strong>
+              <small>{documentSourceName(document.source_agency)}</small>
+              {document.criteria_start && document.criteria_end && (
+                <small>{formatDate(document.criteria_start)}–{formatDate(document.criteria_end)}</small>
+              )}
+            </TableCell>
+            <TableCell className="whitespace-nowrap">{document.response_date ? formatDate(document.response_date) : document.published_at ? formatDate(document.published_at.slice(0, 10)) : "—"}</TableCell>
+            <TableCell>
+              <a href={appPath(documentRoute({ sourceAgency: document.source_agency, originalFilename: document.original_filename }), env)}>{document.original_filename}</a>
+              <small>{(document.byte_size / 1_048_576).toFixed(1)} MiB{document.page_count ? ` · ${document.page_count} pages` : ""}</small>
+            </TableCell>
+            <TableCell className="whitespace-nowrap">{document.trip_count > 0 ? `${document.trip_count.toLocaleString()} trips` : "—"}</TableCell>
+          </TableRow>
+        ))}
+        {documents.results.length === 0 && <TableRow><TableCell colSpan={4} className="p-5 text-center text-muted-foreground">No published source documents.</TableCell></TableRow>}
+      </TableBody>
+    </Table>
+  </div>
+</BaseLayout>

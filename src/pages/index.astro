@@ -1,0 +1,80 @@
+---
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../db/client";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import TripResultsTable from "../components/TripResultsTable";
+import { getAircraftProfile } from "../lib/aircraft-profile";
+import { appPath } from "../lib/config";
+import { getHomePageData } from "../lib/db/public-queries";
+import { aircraftRoute } from "../lib/public-routes";
+import { formatCurrency } from "../lib/utils";
+import AircraftTypeBadge from "../components/AircraftTypeBadge";
+import MeasurementToggle from "../components/MeasurementToggle";
+import { Rss } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
+
+const { stats, recent, fleet } = await getHomePageData(createDatabase(env.DB));
+---
+
+<BaseLayout rssPath="/trips.rss" rssTitle="Golden Dome Airways — New trips">
+  <section class="grid grid-cols-[minmax(18rem,.95fr)_minmax(30rem,1.05fr)] items-start gap-8 max-[900px]:grid-cols-1 max-[900px]:gap-6">
+    <div class="min-w-0 max-w-full [&_p]:mt-[.65rem] [&_p]:mb-0 [&_p]:text-[.88rem] [&_p]:leading-[1.55] [&_a]:font-[750] [&_a]:text-[#276fb5] [&_a]:underline [&_a]:decoration-1">
+      <p>The <a href="https://www.wv.gov/" rel="noopener noreferrer">State of West Virginia</a> owns and operates a fleet of aircraft with its <a href="https://aviation.wv.gov/" rel="noopener noreferrer">State Aviation Division</a>. This site provides a way to search &amp; discover the use of these aircraft, including the passengers, routes, departments, flight paths, and justifications.</p>
+      <p>This website currently has data on <a href={appPath("/trips", env)}>{(stats?.trips ?? 0).toLocaleString()} trips</a> ({(stats?.flights ?? 0).toLocaleString()} flights) totaling <MeasurementToggle client:load kind="flight-hours" value={stats?.hours ?? 0} />, with <a href={appPath("/passengers", env)}>{(stats?.people ?? 0).toLocaleString()} passengers</a> recorded traveling over <MeasurementToggle client:load kind="distance" value={stats?.observed_distance_nmi ?? 0} />.</p>
+      <p class="!mt-[.9rem] !text-[.74rem] !text-muted-foreground [&_a]:!font-[650] [&_a]:!text-inherit">Source code for this project is available <a href="https://github.com/AustinDizzy/wv-gov-flights" rel="noopener noreferrer">on GitHub</a> under the <a href="https://creativecommons.org/publicdomain/zero/1.0/legalcode" rel="noopener noreferrer">Creative Commons Zero (Public Domain)</a> license. See the <a href="https://github.com/AustinDizzy/wv-gov-flights/wiki/Frequently-Asked-Questions" rel="noopener noreferrer">Frequently Asked Questions page</a> in the project wiki for more information.</p>
+    </div>
+    <div class="min-w-0 max-w-full [&_[data-slot=table-container]]:min-w-0 [&_[data-slot=table-container]]:max-w-full [&_table]:text-[.76rem] [&_th]:px-[.55rem] [&_th]:py-[.48rem] [&_th]:align-middle [&_td]:px-[.55rem] [&_td]:py-[.48rem] [&_td]:align-middle max-[900px]:[&_[data-slot=table-container]]:w-full max-[900px]:[&_[data-slot=table-container]]:overflow-x-auto max-[560px]:[&_th:nth-child(3)]:hidden max-[560px]:[&_td:nth-child(3)]:hidden">
+      <div class="mb-[.55rem] flex items-baseline justify-start gap-[.65rem] [&_h2]:m-0 [&_h2]:text-[1.15rem] [&_h2]:font-extrabold [&_h2]:tracking-[-.01em]">
+        <h2>Aircraft fleet</h2>
+        <a class="inline-flex w-fit shrink-0 self-baseline text-[.72rem] font-[650] text-muted-foreground no-underline hover:text-foreground hover:underline" href={appPath("/aircraft", env)}>View all →</a>
+      </div>
+      <div class="min-w-0 max-w-full overflow-x-auto rounded-lg border border-border bg-surface shadow-card max-[900px]:w-full max-[900px]:overflow-hidden">
+        <Table>
+          <TableHeader><TableRow><TableHead><span class="max-[560px]:hidden">Tail number</span><span class="hidden max-[560px]:inline">Tail no.</span></TableHead><TableHead>Aircraft</TableHead><TableHead>Type</TableHead><TableHead>Rate</TableHead><TableHead>Trips</TableHead></TableRow></TableHeader>
+          <TableBody>
+      {fleet.results.map((aircraft) => (
+        <TableRow className="cursor-pointer focus-visible:relative focus-visible:z-1 focus-visible:outline-[3px] focus-visible:outline-gold-500 focus-visible:outline-offset-[-3px]" data-row-href={appPath(aircraftRoute(aircraft.tail_no), env)} tabIndex={0} aria-label={`View ${aircraft.tail_no}`}>
+          <TableCell><a href={appPath(aircraftRoute(aircraft.tail_no), env)}>{aircraft.tail_no}</a></TableCell>
+          <TableCell>{aircraft.display_name}{!aircraft.active && <small class="mt-[.18rem] block text-[.74rem] text-muted-foreground">Decommissioned</small>}</TableCell>
+          <TableCell><AircraftTypeBadge type={getAircraftProfile(aircraft.tail_no, aircraft.manufacturer).type} /></TableCell>
+          <TableCell>
+            {formatCurrency(aircraft.hourly_cost_cents)}
+            {aircraft.hourly_cost_cents != null && <small class="ml-[.16rem] text-[.62rem] text-muted-foreground">/ hr</small>}
+          </TableCell>
+          <TableCell><a href={`${appPath("/trips", env)}?aircraft=${encodeURIComponent(aircraft.tail_no)}`}>{aircraft.trip_count.toLocaleString()}</a></TableCell>
+        </TableRow>
+      ))}
+          {fleet.results.length === 0 && <TableRow><TableCell colSpan={5} className="p-5 text-center text-muted-foreground">No aircraft records are available.</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-7">
+    <div class="mb-[.55rem] flex items-baseline justify-start gap-[.65rem] [&_h2]:m-0 [&_h2]:text-[1.15rem] [&_h2]:font-extrabold [&_h2]:tracking-[-.01em]">
+      <div class="flex items-baseline gap-[.65rem]">
+        <h2>Most recent trips</h2>
+        <a class="inline-flex w-fit shrink-0 self-baseline text-[.72rem] font-[650] text-muted-foreground no-underline hover:text-foreground hover:underline" href={appPath("/trips", env)}>View all trips →</a>
+      </div>
+      <a class="ml-auto inline-flex w-fit shrink-0 items-center gap-[.28rem] self-baseline whitespace-nowrap text-[.72rem] font-[650] text-muted-foreground no-underline hover:text-foreground hover:underline" href={appPath("/trips.rss", env)}>
+        <Rss size={13} aria-hidden="true" />
+        <span>RSS</span>
+      </a>
+    </div>
+    <TripResultsTable
+      client:load
+      trips={recent.results}
+      tripBasePath={appPath("/trips", env)}
+      aircraftBasePath={appPath("/aircraft", env)}
+      emptyMessage="No records have been imported yet."
+    />
+  </section>
+</BaseLayout>

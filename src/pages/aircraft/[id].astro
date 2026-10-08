@@ -1,0 +1,232 @@
+---
+import type { Feature, LineString } from "geojson";
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../../db/client";
+import FlightMap from "../../components/FlightMap";
+import MetricChartGroup from "../../components/MetricChartGroup";
+import TripTableListing from "../../components/TripTableListing.astro";
+import MeasurementToggle from "../../components/MeasurementToggle";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAircraftProfile } from "../../lib/aircraft-profile";
+import { appPath } from "../../lib/config";
+import {
+  listTripFilterOptions,
+  listTrips,
+} from "../../lib/db/public";
+import {
+  findAircraftByPublicParam,
+  getAircraftProfileData,
+} from "../../lib/db/public-queries";
+import { formatCurrency, safeJson } from "../../lib/utils";
+import AircraftBadge from "../../components/AircraftBadge";
+import {
+  tripFilterKeys,
+  tripTableHref,
+  type TripFilterKey,
+} from "../../lib/trip-table";
+
+export const prerender = false;
+
+const param = Astro.params.id ?? "";
+const db = createDatabase(env.DB);
+const aircraft = await findAircraftByPublicParam(db, param);
+if (!aircraft) return Astro.redirect(appPath("/aircraft", env), 302);
+
+const aircraftPath = appPath(
+  `/aircraft/${encodeURIComponent(String(aircraft.tail_no).toLocaleUpperCase("en-US"))}`,
+  env,
+);
+const allowedTripFilterKeys = tripFilterKeys.filter(
+  (key) => key !== "aircraft",
+) as TripFilterKey[];
+const canonicalHref = tripTableHref(
+  aircraftPath,
+  Astro.url,
+  {},
+  allowedTripFilterKeys,
+);
+if (param !== aircraft.tail_no) {
+  return Astro.redirect(canonicalHref, 301);
+}
+if (`${Astro.url.pathname}${Astro.url.search}` !== canonicalHref) {
+  return Astro.redirect(canonicalHref, 302);
+}
+
+const scope = { aircraftId: String(aircraft.id) };
+const [profileData, tripResult, filterOptions] = await Promise.all([
+  getAircraftProfileData(db, String(aircraft.id)),
+  listTrips(db, Astro.url, scope),
+  listTripFilterOptions(db, scope),
+]);
+const { metrics, yearly, departments, observedFlights, recordedFlights } =
+  profileData;
+const requestedPage = Number(Astro.url.searchParams.get("page") ?? "1");
+if (Number.isSafeInteger(requestedPage) && requestedPage !== tripResult.page) {
+  return Astro.redirect(
+    tripTableHref(
+      aircraftPath,
+      Astro.url,
+      { page: String(tripResult.page) },
+      allowedTripFilterKeys,
+    ),
+    302,
+  );
+}
+
+const profile = getAircraftProfile(String(aircraft.tail_no), String(aircraft.manufacturer ?? ""));
+const geometries = observedFlights.results.flatMap((flight, index) => {
+  const feature = safeJson<Feature<LineString> | null>(flight.geometry_json, null);
+  if (!feature || feature.geometry?.type !== "LineString") return [];
+  feature.properties = {
+    ...(feature.properties ?? {}),
+    label: new Date(flight.started_at_utc).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+    }),
+    detail: `${(flight.duration_seconds / 3600).toFixed(1)} hours · recorded flight ${index + 1}`,
+  };
+  return [feature];
+});
+const recordedNmiByYear = recordedFlights.results.reduce<Record<string, number>>((years, flight) => {
+  const year = flight.started_at_utc.slice(0, 4);
+  years[year] = (years[year] ?? 0) + Number(flight.distance_nmi);
+  return years;
+}, {});
+const recordedNmi = Object.values(recordedNmiByYear).reduce(
+  (total, distance) => total + distance,
+  0,
+);
+const yearlyByYear = new Map(yearly.results.map((item) => [item.year, item]));
+const timeSeries = [...new Set([...yearlyByYear.keys(), ...Object.keys(recordedNmiByYear)])]
+  .sort()
+  .map((year) => ({
+    label: year,
+    trips: yearlyByYear.get(year)?.trip_count ?? 0,
+    hours: yearlyByYear.get(year)?.flight_hours ?? 0,
+    distance: recordedNmiByYear[year] ?? 0,
+  }));
+const chartBreakdowns = [
+  {
+    category: "agency",
+    wide: true,
+    items: departments.results.map((item) => ({
+      label: item.department,
+      trips: item.trip_count,
+      hours: item.flight_hours,
+      distance: item.distance_nmi,
+    })),
+  },
+];
+const tripsHref = `${appPath("/trips", env)}?aircraft=${encodeURIComponent(String(aircraft.tail_no))}`;
+const faaRegistrationHref = `https://registry.faa.gov/aircraftinquiry/Search/NNumberResult?NNumberTxt=${encodeURIComponent(String(aircraft.tail_no).replace(/^N/i, ""))}`;
+const trackingLinks = [
+  ...(aircraft.icao_no
+    ? [{
+        label: "ADS-B Exchange",
+        href: `https://globe.adsbexchange.com/?icao=${String(aircraft.icao_no).toLocaleLowerCase("en-US")}`,
+      }]
+    : []),
+  {
+    label: "Flightradar24",
+    href: `https://www.flightradar24.com/data/aircraft/${String(aircraft.tail_no).toLocaleLowerCase("en-US")}`,
+  },
+];
+---
+
+<BaseLayout title={`${aircraft.tail_no} aircraft`}>
+  <header class="mb-[.85rem] flex items-end justify-between gap-4 max-[560px]:items-start max-[560px]:flex-col [&_h1]:mt-[.45rem] [&_h1]:flex [&_h1]:items-center [&_h1]:gap-3 [&_h1]:text-[clamp(1.4rem,2.8vw,2rem)] max-[560px]:[&_h1]:flex-row max-[560px]:[&_h1]:flex-wrap max-[560px]:[&_h1]:gap-[.45rem] [&_h1>span:last-child]:font-extrabold [&_h1>span:last-child]:tracking-[-.025em]">
+    <h1><AircraftBadge tailNo={String(aircraft.tail_no)} type={profile.type} /> <span>{aircraft.display_name}</span></h1>
+  </header>
+
+  <section class="grid grid-cols-[minmax(18rem,.78fr)_minmax(0,1.55fr)] overflow-hidden rounded-[.45rem] border border-border bg-surface shadow-card max-[900px]:grid-cols-1">
+    {profile.image ? (
+      <figure class="relative m-0 min-h-72 overflow-hidden bg-navy-900 max-[900px]:max-h-[28rem] max-[560px]:min-h-60">
+        <img class="h-full w-full object-cover" src={profile.image} alt={`${aircraft.tail_no}, ${aircraft.display_name}`} referrerpolicy="no-referrer" />
+        {profile.imageSource && <figcaption class="absolute right-[.55rem] bottom-[.45rem] bg-navy-950/70 px-[.35rem] py-[.16rem] text-[.58rem] text-white/80">Photo: {profile.imageSource}</figcaption>}
+      </figure>
+    ) : (
+      <div class="relative m-0 grid min-h-72 items-end justify-items-start overflow-hidden bg-[radial-gradient(circle_at_80%_15%,rgb(240_204_113_/_20%),transparent_40%),linear-gradient(145deg,var(--navy-800),var(--navy-950))] p-4 text-white/65 before:absolute before:inset-[24%_-15%] before:-rotate-[18deg] before:rounded-full before:border before:border-white/10 before:content-[''] after:absolute after:inset-[33%_-4%] after:-rotate-[18deg] after:rounded-full after:border after:border-white/10 after:content-[''] max-[900px]:max-h-[28rem] max-[560px]:min-h-60 [&>span]:relative [&>span]:z-1 [&>span]:text-[.7rem] [&>span]:font-extrabold [&>span]:tracking-[.14em] [&>span]:uppercase"><span>{profile.type}</span></div>
+    )}
+    <div class="min-w-0">
+      <dl class="m-0 grid grid-cols-2 border-b border-border [&>div]:min-w-0 [&>div]:border-r [&>div]:border-b [&>div]:border-border [&>div]:px-[.85rem] [&>div]:py-[.72rem] max-[560px]:[&>div]:p-[.8rem] [&>div:nth-child(even)]:border-r-0 [&>div:nth-last-child(-n+2)]:border-b-0 [&_dt]:text-[.63rem] [&_dt]:font-[750] [&_dt]:text-muted-foreground [&_dd]:mt-[.12rem] [&_dd]:mb-0 [&_dd]:text-[1.15rem] [&_dd]:leading-[1.15] [&_dd]:font-[850] [&_dd]:[overflow-wrap:anywhere] max-[560px]:[&_dd]:text-[1.1rem]" aria-label={`${aircraft.tail_no} record summary`}>
+        <div class="relative hover:bg-muted/50">
+          <dt>Reported trips</dt>
+          <dd>{(metrics?.trip_count ?? 0).toLocaleString()} <small class="ml-1 text-[.58rem] font-bold whitespace-nowrap text-muted-foreground">View all</small></dd>
+          <a class="absolute inset-0" href={tripsHref} aria-label={`View all ${aircraft.tail_no} trips`}><span class="sr-only">View all trips</span></a>
+        </div>
+        <div>
+          <MeasurementToggle
+            client:load
+            kind="flight-hours"
+            value={metrics?.flight_hours ?? 0}
+            compact
+            labelElement="dt"
+            valueElement="dd"
+            labels={{ primary: "Flight hours", secondary: "Flight time" }}
+          />
+        </div>
+        <div><dt>Recorded flight distance</dt><dd>{recordedNmi > 0 ? <MeasurementToggle client:load kind="distance" value={recordedNmi} compact /> : "—"}</dd></div>
+        <div><dt>Total cost</dt><dd>{formatCurrency(metrics?.total_cost ?? 0)}</dd></div>
+      </dl>
+      <div class="grid grid-cols-[minmax(0,1.1fr)_minmax(13rem,.9fr)] gap-4 px-[.85rem] py-3 max-[560px]:grid-cols-1 max-[560px]:p-[.85rem]">
+        <dl class="m-0 grid content-start grid-cols-2 max-[560px]:grid-cols-1 [&>div]:grid [&>div]:grid-cols-[1fr_1.2fr] [&>div]:gap-2 [&>div]:border-b [&>div]:border-border [&>div]:py-[.38rem] [&>div:nth-child(odd)]:pr-[.8rem] [&>div:nth-child(even)]:pl-[.8rem] max-[560px]:[&>div]:px-0 [&_dt]:text-[.65rem] [&_dt]:text-muted-foreground [&_dd]:m-0 [&_dd]:text-right [&_dd]:text-[.7rem] [&_dd]:font-[780]">
+          <div><dt>Status</dt><dd>{aircraft.active ? "Active" : "Decommissioned"}</dd></div>
+          <div><dt>Type</dt><dd>{profile.type}</dd></div>
+          <div><dt>Rate</dt><dd>{formatCurrency(Number(aircraft.hourly_cost_cents) || null)} / hour</dd></div>
+          {profile.seats && <div><dt>Seats</dt><dd>{profile.seats}</dd></div>}
+          {aircraft.serial_number && <div><dt>Serial number</dt><dd>{aircraft.serial_number}</dd></div>}
+          {aircraft.icao_no && <div><dt>ICAO address</dt><dd class="select-all font-mono"><a href={faaRegistrationHref} rel="noopener noreferrer" target="_blank">{aircraft.icao_no}</a></dd></div>}
+        </dl>
+        <div class="flex flex-col items-stretch [&>strong]:mb-[.2rem] [&>strong]:text-[.63rem] [&>strong]:tracking-[.08em] [&>strong]:text-muted-foreground [&>strong]:uppercase [&_a]:flex [&_a]:justify-between [&_a]:gap-3 [&_a]:border-b [&_a]:border-border [&_a]:py-[.45rem] [&_a]:text-[.68rem] [&_a]:font-[750] [&_a]:no-underline [&_a_span]:text-gold-500">
+          <strong>Aircraft information</strong>
+          <a href={faaRegistrationHref} rel="noopener noreferrer" target="_blank">{aircraft.tail_no} FAA registration <span>↗</span></a>
+          {trackingLinks.map((link) => <a href={link.href} rel="noopener noreferrer" target="_blank">{aircraft.tail_no} on {link.label} <span>↗</span></a>)}
+          {profile.resources?.map((resource) => <a href={resource.href} rel="noopener noreferrer" target="_blank">{resource.label} <span>↗</span></a>)}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {geometries.length > 0 && (
+    <section class="mt-7" id="flight-activity">
+      <FlightMap
+        client:visible
+        features={geometries}
+        title={`${aircraft.tail_no} flight activity`}
+        vehicle={profile.type === "Helicopter" ? "helicopter" : "airplane"}
+        externalLinks={trackingLinks}
+        playback={false}
+        showToolbar={false}
+      />
+    </section>
+  )}
+
+  <section class="mt-7">
+    <MetricChartGroup
+      client:load
+      series={timeSeries}
+      breakdowns={chartBreakdowns}
+    />
+  </section>
+
+  <section class="mt-7">
+    <div>
+      <div class="mb-[.55rem] flex items-baseline justify-between gap-4">
+        <h2 class="m-0 text-[1.15rem] font-extrabold tracking-[-.01em]">Reported trips</h2>
+        <a class="inline-flex w-fit shrink-0 self-baseline text-[.72rem] font-[750] no-underline hover:underline" href={tripsHref}>View all</a>
+      </div>
+      <TripTableListing
+        action={aircraftPath}
+        currentUrl={Astro.url}
+        result={tripResult}
+        filterOptions={filterOptions}
+        tripBasePath={appPath("/trips", env)}
+        aircraftBasePath={appPath("/aircraft", env)}
+        showAircraftFilter={false}
+        emptyMessage="No published trips for this aircraft."
+      />
+    </div>
+  </section>
+</BaseLayout>

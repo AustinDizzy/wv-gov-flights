@@ -1,0 +1,73 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"compatibility_date": "2026-07-17",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"name": "golden-dome-airways",
+	"main": "./src/worker.ts",
+	"keep_vars": true,
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS"
+	},
+	"vars": {
+		"APP_BASE_PATH": "/wv-gov-flights",
+		"PUBLIC_ORIGIN": "https://l.abs.codes",
+		"AI_GATEWAY_ID": "default",
+		"GLOBE_API_BASE_URL": "https://globe.adsbexchange.com"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "golden-dome-airways",
+			"database_id": "4ee77289-7ca1-4fdd-9c5f-44bc4ff7fb5d",
+			"migrations_dir": "migrations"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "FILES",
+			"bucket_name": "wv-gov-flights"
+		}
+	],
+	"ai": {
+		"binding": "AI"
+	},
+	"workflows": [
+		{
+			"binding": "REPORT_INGESTION",
+			"name": "golden-dome-airways-report-ingestion",
+			"class_name": "ReportIngestionWorkflow"
+		},
+		{
+			"binding": "TRACK_COLLECTION",
+			"name": "golden-dome-airways-track-collection",
+			"class_name": "TrackCollectionWorkflow"
+		}
+	],
+	"triggers": {
+		"crons": [
+			"15 10 * * 1"
+		]
+	},
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1,
+		"logs": {
+			"enabled": true,
+			"invocation_logs": true
+		}
+	},
+	"routes": [
+		{
+			"pattern": "l.abs.codes/wv-gov-flights",
+			"zone_name": "abs.codes"
+		},
+		{
+			"pattern": "l.abs.codes/wv-gov-flights/*",
+			"zone_name": "abs.codes"
+		}
+	]
+}

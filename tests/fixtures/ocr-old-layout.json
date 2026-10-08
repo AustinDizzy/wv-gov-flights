@@ -1,0 +1,13 @@
+{
+  "model": "mistral-ocr-latest",
+  "pages": [
+    {
+      "index": 0,
+      "markdown": "N1WV Flight Report",
+      "tables": [{ "content": "<table><tr><th>Date</th><th>Agency</th><th>Hours</th><th>Route</th></tr><tr><td>07/01/2025</td><td>Governor's Office</td><td>1.4</td><td>CRW-MRB-CRW</td></tr></table>" }],
+      "confidence_scores": { "average_page_confidence_score": 0.98 }
+    }
+  ],
+  "document_annotation": "[{\"date\":\"2025-07-01\",\"aircraft\":\"N1WV\",\"department\":\"Governor's Office\",\"division\":null,\"flightHours\":1.4,\"route\":\"CRW-MRB-CRW\",\"passengers\":[\"Jane Doe\",\"John Doe\"],\"comments\":null,\"invoiced\":0}]",
+  "usage_info": { "pages_processed": 1 }
+}

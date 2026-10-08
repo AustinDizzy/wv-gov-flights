@@ -1,0 +1,13 @@
+{
+  "model": "mistral-ocr-latest",
+  "pages": [
+    {
+      "index": 0,
+      "markdown": "Aviation Flight Report",
+      "tables": [{ "content": "<table><tr><th>Date</th><th>Aircraft</th><th>Agency</th><th>Flt Hrs</th><th>Destinations</th><th>Passengers</th><th>Comments</th><th>Invoiced</th></tr><tr><td>07/01/2026</td><td>N1WV</td><td>Commerce<br>Development</td><td>2.3</td><td>CRW-IAD-CRW</td><td>Jane Doe</td><td>Meeting</td><td>$3,220.00</td></tr></table>" }],
+      "confidence_scores": { "average_page_confidence_score": 0.96 }
+    }
+  ],
+  "document_annotation": "[{\"date\":\"2026-07-01\",\"aircraft\":\"N1WV\",\"department\":\"Commerce\",\"division\":\"Development\",\"flightHours\":2.3,\"route\":\"CRW-IAD-CRW\",\"passengers\":[\"Jane Doe\"],\"comments\":\"Meeting\",\"invoiced\":3220}]",
+  "usage_info": { "pages_processed": 1 }
+}

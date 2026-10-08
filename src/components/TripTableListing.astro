@@ -1,0 +1,160 @@
+---
+import TripFilters from "./TripFilters";
+import TripResultsTable from "./TripResultsTable";
+import { Button } from "./ui/button";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "./ui/pagination";
+import type { PublicTrip, TripFilterOptions } from "../lib/db/public";
+import {
+  canonicalTripTableParams,
+  hasActiveTripFilters,
+  paginationItems,
+  tripFilterKeys,
+  tripTableHref,
+  tripSort,
+  type TripFilterKey,
+} from "../lib/trip-table";
+import { formatCurrency } from "../lib/utils";
+
+interface Props {
+  action: string;
+  currentUrl: URL;
+  result: {
+    items: PublicTrip[];
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+    has_more: boolean;
+    total_flight_hours: number;
+    total_cost_cents: number;
+  };
+  filterOptions: TripFilterOptions;
+  tripBasePath: string;
+  aircraftBasePath: string;
+  showAircraftFilter?: boolean;
+  emptyMessage?: string;
+}
+
+const {
+  action,
+  currentUrl,
+  result,
+  filterOptions,
+  tripBasePath,
+  aircraftBasePath,
+  showAircraftFilter = true,
+  emptyMessage = "No trips match these filters.",
+} = Astro.props;
+const allowedFilterKeys: TripFilterKey[] = showAircraftFilter
+  ? [...tripFilterKeys]
+  : tripFilterKeys.filter((key) => key !== "aircraft");
+const queryString = (updates: Record<string, string | null>) =>
+  tripTableHref(action, currentUrl, updates, allowedFilterKeys);
+const hasActiveFilters = hasActiveTripFilters(currentUrl, allowedFilterKeys);
+const selectedSort = tripSort(currentUrl.searchParams.get("sort"));
+const sortParams = canonicalTripTableParams(currentUrl, allowedFilterKeys);
+sortParams.delete("page");
+sortParams.delete("sort");
+const clearFilterUpdates = Object.fromEntries([
+  ...allowedFilterKeys.map((key) => [key, null]),
+  ["page", null],
+]);
+const resultStart = ((result.page - 1) * result.limit + 1).toLocaleString();
+const resultEnd = Math.min(result.page * result.limit, result.total).toLocaleString();
+const resultTotal = result.total.toLocaleString();
+const resultHours = result.total_flight_hours.toLocaleString(undefined, {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+const resultCost = formatCurrency(result.total_cost_cents);
+---
+
+<TripFilters
+  client:load
+  action={action}
+  initialSearch={currentUrl.searchParams.get("search") ?? ""}
+  aircraftOptions={showAircraftFilter
+    ? filterOptions.aircraft.map((tailNo) => ({ label: tailNo, value: tailNo }))
+    : undefined}
+  agencyOptions={filterOptions.agencies}
+  datasetMinDate={filterOptions.dateBounds.min ?? undefined}
+  datasetMaxDate={filterOptions.dateBounds.max ?? undefined}
+  selectedAircraft={showAircraftFilter ? currentUrl.searchParams.getAll("aircraft") : []}
+  selectedDepartments={currentUrl.searchParams.getAll("department")}
+  selectedDivisions={currentUrl.searchParams.getAll("division")}
+  startDate={currentUrl.searchParams.get("startDate") ?? undefined}
+  endDate={currentUrl.searchParams.get("endDate") ?? undefined}
+  initialSort={currentUrl.searchParams.get("sort") ?? undefined}
+/>
+<div class="my-[.65rem] mb-[.45rem] flex flex-wrap items-center justify-between gap-x-4 gap-y-[.55rem] text-[.68rem] text-muted-foreground max-[560px]:items-stretch max-[560px]:flex-col max-[560px]:gap-[.4rem] [&_p]:m-0 max-[560px]:[&_p]:w-full max-[560px]:[&_p]:min-w-0 [&_strong]:text-[.8rem] [&_strong]:text-foreground [&_a]:font-extrabold">
+  {result.total > 0
+    ? (
+      <p class="result-summary">
+        <span class="max-[560px]:hidden">
+          Showing <strong>{resultStart}–{resultEnd}</strong> of <strong class="font-[650]">{resultTotal} trips</strong> w/ <strong class="font-[650]">{resultHours} flight hours</strong> &amp; <strong class="font-[650]">{resultCost} total cost</strong>
+        </span>
+        <span class="hidden max-[560px]:block max-[560px]:overflow-x-auto max-[560px]:text-[clamp(.6rem,2.65vw,.68rem)] max-[560px]:tracking-[-.015em] max-[560px]:whitespace-nowrap max-[560px]:[scrollbar-width:none] max-[560px]:[&_strong]:text-[inherit]">
+          Showing <strong>{resultStart}–{resultEnd}</strong> / <strong>{resultTotal} trips</strong> · <strong>{resultHours} hrs</strong> · <strong>{resultCost}</strong>
+        </span>
+      </p>
+    )
+    : <p>{emptyMessage}</p>}
+  <div class="flex shrink-0 items-center gap-[.65rem] max-[560px]:self-end">
+    {hasActiveFilters && <a href={queryString(clearFilterUpdates)}>Clear filters</a>}
+    <form class="flex items-center gap-[.4rem] [&_label]:block [&_label]:text-[.68rem] [&_label]:font-extrabold [&_label]:text-muted-foreground [&_select]:min-h-8 [&_select]:w-auto [&_select]:min-w-[7.5rem] [&_select]:rounded-[.35rem] [&_select]:px-[.55rem] [&_select]:py-[.3rem] [&_select]:pr-[1.8rem] [&_select]:text-[.72rem] [&_select]:text-foreground" method="get" action={action}>
+      {[...sortParams.entries()].map(([key, value]) => (
+        <input type="hidden" name={key} value={value} />
+      ))}
+      <label for="trip-sort">Sort</label>
+      <select id="trip-sort" name="sort" onchange="this.form.submit()">
+        <option value="date" selected={selectedSort === "date"}>Date (default)</option>
+        <option value="distance" selected={selectedSort === "distance"}>Distance</option>
+        <option value="time" selected={selectedSort === "time"}>Time</option>
+        <option value="amount" selected={selectedSort === "amount"}>Amount</option>
+        <option value="passengers" selected={selectedSort === "passengers"}>Passengers</option>
+      </select>
+    </form>
+  </div>
+</div>
+<TripResultsTable
+  trips={result.items}
+  tripBasePath={tripBasePath}
+  aircraftBasePath={aircraftBasePath}
+  emptyMessage={emptyMessage}
+/>
+{result.total_pages > 1 && (
+  <Pagination className="mt-4 flex items-center justify-center gap-[.45rem] text-[.72rem] text-muted-foreground max-[560px]:justify-start max-[560px]:gap-[.35rem] max-[560px]:overflow-x-auto max-[560px]:pb-[.2rem]" aria-label="Trips pagination">
+    <PaginationContent>
+      <PaginationItem>
+        {result.page > 1
+          ? <PaginationPrevious href={queryString({ page: String(result.page - 1) })} />
+          : <Button variant="ghost" disabled aria-label="No previous page">← <span>Previous</span></Button>}
+      </PaginationItem>
+      {paginationItems(result.page, result.total_pages).map((item) => (
+        <PaginationItem>
+          {item === "ellipsis"
+            ? <PaginationEllipsis />
+            : <PaginationLink
+                href={queryString({ page: String(item) })}
+                isActive={item === result.page}
+                aria-label={`Page ${item}`}
+              >{item}</PaginationLink>}
+        </PaginationItem>
+      ))}
+      <PaginationItem className="mx-[.15rem] whitespace-nowrap font-[750] max-[560px]:hidden">Page {result.page} of {result.total_pages}</PaginationItem>
+      <PaginationItem>
+        {result.has_more
+          ? <PaginationNext href={queryString({ page: String(result.page + 1) })} />
+          : <Button variant="ghost" disabled aria-label="No next page"><span>Next</span> →</Button>}
+      </PaginationItem>
+    </PaginationContent>
+  </Pagination>
+)}

@@ -1,0 +1,175 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--ui-muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-navy-950: var(--navy-950);
+  --color-navy-900: var(--navy-900);
+  --color-navy-800: var(--navy-800);
+  --color-gold-500: var(--gold-500);
+  --color-gold-300: var(--gold-300);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-line: var(--line);
+  --color-success: var(--success);
+  --font-brand: Georgia, "Times New Roman", serif;
+  --font-handwritten: "Comic Neue", "Comic Sans MS", "Comic Sans", cursive;
+  --shadow-card: var(--shadow-small);
+  --shadow-raised: var(--shadow);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --navy-950: #071622;
+    --navy-900: #0b2335;
+    --navy-800: #163d57;
+    --gold-500: #b98014;
+    --gold-300: #f0cc71;
+    --sky-100: #eaf3f6;
+    --paper: #f6f4ed;
+    --surface: #ffffff;
+    --ink: #122a3a;
+    --muted: #60717c;
+    --line: #d7ddd9;
+    --danger: #a33333;
+    --success: #176b4b;
+    --shadow: 0 16px 42px rgb(6 21 36 / 7%);
+    --shadow-small: 0 8px 24px rgb(6 21 36 / 6%);
+    --radius: .55rem;
+    --page-content-max-width: 84rem;
+    --background: var(--paper);
+    --foreground: var(--ink);
+    --card: var(--surface);
+    --card-foreground: var(--ink);
+    --popover: var(--surface);
+    --popover-foreground: var(--ink);
+    --primary: var(--navy-800);
+    --primary-foreground: #ffffff;
+    --secondary: var(--sky-100);
+    --secondary-foreground: var(--ink);
+    --ui-muted: color-mix(in srgb, var(--sky-100) 62%, var(--surface));
+    --muted-foreground: var(--muted);
+    --accent: var(--sky-100);
+    --accent-foreground: var(--ink);
+    --destructive: var(--danger);
+    --border: var(--line);
+    --input: var(--line);
+    --ring: var(--gold-500);
+    --chart-1: var(--gold-500);
+    --chart-2: #2d71bf;
+    --chart-3: #5b8f73;
+    --chart-4: #80659b;
+    --chart-5: #bc6c55;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper: #07131f;
+    --surface: #0b1d2d;
+    --ink: #ecf4f8;
+    --muted: #a9bac6;
+    --line: #294158;
+    --sky-100: #102b40;
+    --shadow: 0 15px 45px rgb(0 0 0 / 25%);
+    --primary: #d9b65e;
+    --primary-foreground: var(--navy-950);
+    --secondary: #16344a;
+    --ui-muted: #102b40;
+    --accent: #17364d;
+  }
+
+  html {
+    background: var(--paper);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.55;
+  }
+
+  a {
+    text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+    text-underline-offset: .2em;
+  }
+
+  a:hover {
+    text-decoration-color: currentColor;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--gold-500);
+    outline-offset: 3px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: clamp(1.55rem, 2.6vw, 2.25rem);
+    letter-spacing: -.025em;
+  }
+
+  h2 {
+    font-size: clamp(1.15rem, 1.8vw, 1.5rem);
+    letter-spacing: -.015em;
+  }
+
+  h3 {
+    font-size: 1.05rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      transition-duration: .01ms !important;
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+}

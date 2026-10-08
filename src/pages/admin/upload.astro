@@ -1,0 +1,11 @@
+---
+import { env } from "cloudflare:workers";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PdfUpload from "../../components/PdfUpload";
+import { appPath } from "../../lib/config";
+---
+<BaseLayout title="Upload report">
+  <p class="mb-[.35rem] text-[.68rem] font-extrabold tracking-[.12em] text-gold-500 uppercase">New ingestion batch</p><h1>Upload a PDF report</h1>
+  <p class="mt-[.65rem] max-w-3xl text-[.92rem] text-muted-foreground">Upload a flight-log PDF for review and publication.</p>
+  <div class="mt-[1.8rem]"><PdfUpload client:load endpoint={appPath("/api/admin/uploads", env)} /></div>
+</BaseLayout>

@@ -1,0 +1,30 @@
+---
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../../../db/client";
+import { getObservedFlightEditor } from "../../../lib/db/admin-queries";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import FlightMap from "../../../components/FlightMap";
+import { GeometryEditor } from "../../../components/AdminOperations";
+import { appPath } from "../../../lib/config";
+
+const flight = await getObservedFlightEditor(
+  createDatabase(env.DB),
+  Astro.params.id,
+);
+if (!flight) return Astro.redirect(appPath("/admin/observed-flights", env), 302);
+const geometry = JSON.parse(flight.geometry_json);
+---
+
+<BaseLayout title={`Edit ${flight.tail_no} observed flight`}>
+  <p class="mb-[.35rem] text-[.68rem] font-extrabold tracking-[.12em] text-gold-500 uppercase">Contributor workspace</p>
+  <h1>{flight.tail_no} geometry</h1>
+  <p class="mt-[.65rem] max-w-3xl text-[.92rem] text-muted-foreground">{flight.started_at_utc} — {flight.ended_at_utc} · {flight.geometry_source} geometry</p>
+  <FlightMap client:visible features={[geometry]} />
+  <section class="mt-[1.8rem]">
+    <GeometryEditor
+      client:load
+      endpoint={appPath(`/api/admin/observed-flights/${flight.id}/geometry`, env)}
+      initialGeometry={geometry}
+    />
+  </section>
+</BaseLayout>

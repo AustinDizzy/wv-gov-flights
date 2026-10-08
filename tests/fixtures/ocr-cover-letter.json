@@ -1,0 +1,13 @@
+{
+  "model": "mistral-ocr-latest",
+  "pages": [
+    {
+      "index": 0,
+      "markdown": "Dear Mr. Siford, enclosed are records responsive to your request.",
+      "tables": [],
+      "confidence_scores": { "average_page_confidence_score": 0.99 }
+    }
+  ],
+  "document_annotation": "[]",
+  "usage_info": { "pages_processed": 1 }
+}

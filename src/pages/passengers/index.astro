@@ -1,0 +1,182 @@
+---
+import { env } from "cloudflare:workers";
+import { createDatabase } from "../../db/client";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { appPath } from "../../lib/config";
+import {
+  listPassengerPage,
+  passengerSort,
+  passengerSortValues,
+} from "../../lib/db/public-queries";
+import { passengerRoute } from "../../lib/public-routes";
+import { formatDate } from "../../lib/utils";
+import { formatNauticalMiles } from "../../lib/measurements";
+import { Button } from "../../components/ui/button";
+import PassengerAgencyFilter from "../../components/PassengerAgencyFilter";
+import PassengerSearchFilter from "../../components/PassengerSearchFilter";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "../../components/ui/pagination";
+import { paginationItems } from "../../lib/trip-table";
+
+const passengersPath = appPath("/passengers", env);
+const search =
+  Astro.url.searchParams.get("search")?.trim().toLocaleLowerCase()
+  || Astro.url.searchParams.get("q")?.trim().toLocaleLowerCase()
+  || "";
+const department = Astro.url.searchParams.get("department")?.trim() ?? "";
+const division = department
+  ? ""
+  : (Astro.url.searchParams.get("division")?.trim() ?? "");
+const requestedSort = Astro.url.searchParams.get("sort")?.trim();
+const sort = passengerSort(requestedSort);
+const rawPage = Astro.url.searchParams.get("page")?.trim() ?? "1";
+const requestedPage =
+  /^[1-9]\d*$/.test(rawPage) && Number.isSafeInteger(Number(rawPage))
+    ? Number(rawPage)
+    : 1;
+
+const canonicalParams = new URLSearchParams();
+if (search) canonicalParams.set("search", search);
+if (department) canonicalParams.set("department", department);
+if (division) canonicalParams.set("division", division);
+if (requestedPage > 1) canonicalParams.set("page", String(requestedPage));
+if (
+  requestedSort
+  && requestedSort !== "trips"
+  && passengerSortValues.includes(
+    requestedSort as typeof passengerSortValues[number],
+  )
+) {
+  canonicalParams.set("sort", sort);
+}
+const canonicalHref = canonicalParams.size > 0
+  ? `${passengersPath}?${canonicalParams}`
+  : passengersPath;
+if (`${Astro.url.pathname}${Astro.url.search}` !== canonicalHref) {
+  return Astro.redirect(canonicalHref, 302);
+}
+
+const people = await listPassengerPage(createDatabase(env.DB), {
+  search,
+  sort,
+  department,
+  division,
+  page: requestedPage,
+});
+const passengerHref = (updates: Record<string, string | null>) => {
+  const params = new URLSearchParams(canonicalParams);
+  for (const [key, value] of Object.entries(updates)) {
+    if (value && !(key === "page" && value === "1")) params.set(key, value);
+    else params.delete(key);
+  }
+  return params.size > 0 ? `${passengersPath}?${params}` : passengersPath;
+};
+if (requestedPage !== people.page) {
+  return Astro.redirect(
+    passengerHref({ page: String(people.page) }),
+    302,
+  );
+}
+const sortFormParams = new URLSearchParams(canonicalParams);
+sortFormParams.delete("page");
+sortFormParams.delete("sort");
+const hasActiveFilters = Boolean(search || department || division);
+const clearFiltersHref = passengerHref({
+  search: null,
+  department: null,
+  division: null,
+  page: null,
+});
+---
+<BaseLayout title="Passengers">
+  <h1 class="mb-[.65rem] text-2xl font-[780] tracking-[-.02em]">Passengers</h1>
+  <div class="my-[.65rem] grid grid-cols-[minmax(0,1fr)_minmax(13rem,.8fr)] items-end gap-[.55rem] rounded-[.45rem] border border-border bg-surface p-[.7rem] shadow-card max-[560px]:grid-cols-1">
+    <PassengerSearchFilter
+      client:load
+      action={passengersPath}
+      initialSearch={search}
+      selectedDepartment={department}
+      selectedDivision={division}
+      sort={requestedSort ? sort : undefined}
+    />
+    <PassengerAgencyFilter
+      client:load
+      action={passengersPath}
+      agencyOptions={people.agencies}
+      selectedDepartment={department}
+      selectedDivision={division}
+      search={search}
+      sort={requestedSort ? sort : undefined}
+    />
+  </div>
+
+  <div class="my-[.65rem] mb-[.45rem] flex flex-wrap items-end justify-between gap-x-4 gap-y-[.55rem] text-[.68rem] text-muted-foreground [&_p]:mb-[.35rem] [&_p]:mt-0 [&_strong]:text-[.8rem] [&_strong]:text-foreground [&_a]:font-extrabold">
+    {people.total > 0
+      ? <p>Showing <strong>{((people.page - 1) * people.limit + 1).toLocaleString()}–{Math.min(people.page * people.limit, people.total).toLocaleString()}</strong> of <strong>{people.total.toLocaleString()} passengers</strong></p>
+      : <p>No passengers match those filters.</p>}
+    <div class="flex shrink-0 items-center gap-[.65rem]">
+      {hasActiveFilters && <a href={clearFiltersHref}>Clear filters</a>}
+      <form class="flex items-center gap-[.4rem] [&_label]:block [&_label]:text-[.68rem] [&_label]:font-extrabold [&_label]:text-muted-foreground [&_select]:min-h-8 [&_select]:w-auto [&_select]:min-w-[7.5rem] [&_select]:rounded-[.35rem] [&_select]:px-[.55rem] [&_select]:py-[.3rem] [&_select]:pr-[1.8rem] [&_select]:text-[.72rem] [&_select]:text-foreground" method="get" action={passengersPath}>
+        {[...sortFormParams.entries()].map(([key, value]) => (
+          <input type="hidden" name={key} value={value} />
+        ))}
+        <label for="passenger-sort">Sort</label>
+        <select id="passenger-sort" name="sort" onchange="this.form.submit()">
+          <option value="trips" selected={sort === "trips"}>Trips</option>
+          <option value="hours" selected={sort === "hours"}>Hours</option>
+          <option value="distance" selected={sort === "distance"}>Distance</option>
+        </select>
+      </form>
+    </div>
+  </div>
+
+  <div class="overflow-hidden rounded-[.55rem] border border-border bg-surface shadow-card">
+    {people.results.map((person, index) => (
+      <a class="grid min-h-16 grid-cols-[3rem_minmax(13rem,2fr)_repeat(3,minmax(5rem,.5fr))_2rem] items-center gap-4 border-b border-border px-3 py-[.55rem] no-underline last:border-b-0 hover:bg-secondary max-[900px]:grid-cols-[2.5rem_minmax(11rem,1fr)_repeat(2,minmax(4.5rem,.4fr))_1.5rem] max-[900px]:[&>span:nth-last-child(2)]:hidden max-[560px]:grid-cols-[2rem_minmax(0,1fr)_4rem_1.2rem] max-[560px]:gap-[.65rem] max-[560px]:[&>span:nth-child(4)]:hidden max-[560px]:[&>span:nth-child(5)]:hidden" href={appPath(passengerRoute(person.canonical_name), env)}>
+        <span class="text-gold-500">{String((people.page - 1) * people.limit + index + 1).padStart(2, "0")}</span>
+        <span class="min-w-0 [&_strong]:block [&_strong]:truncate [&_strong]:text-[1.05rem] max-[560px]:[&_strong]:text-[.95rem] [&_small]:block [&_small]:text-[.65rem] [&_small]:text-muted-foreground"><strong>{person.canonical_name}</strong><small>{person.latest_trip ? `Most recent trip ${formatDate(person.latest_trip)}` : "No dated trips"}</small></span>
+        <span class="[&_strong]:block [&_small]:block [&_small]:text-[.65rem] [&_small]:text-muted-foreground"><strong>{person.trip_count.toLocaleString()}</strong><small>trips</small></span>
+        <span class="[&_strong]:block [&_small]:block [&_small]:text-[.65rem] [&_small]:text-muted-foreground"><strong>{person.flight_hours.toLocaleString(undefined, { maximumFractionDigits: 1 })}</strong><small>hours</small></span>
+        <span class="[&_strong]:block [&_small]:block [&_small]:text-[.65rem] [&_small]:text-muted-foreground"><strong>{formatNauticalMiles(person.distance_nmi, { compact: true })}</strong><small>distance traveled</small></span>
+        <span class="text-right text-xl text-gold-500" aria-hidden="true">→</span>
+      </a>
+    ))}
+    {people.results.length === 0 && <p class="px-6 py-12 text-center text-muted-foreground">No passengers match those filters.</p>}
+  </div>
+
+  {people.total_pages > 1 && (
+    <Pagination className="mt-4 flex items-center justify-center gap-[.45rem] text-[.72rem] text-muted-foreground max-[560px]:justify-start max-[560px]:gap-[.35rem] max-[560px]:overflow-x-auto max-[560px]:pb-[.2rem]" aria-label="Passengers pagination">
+      <PaginationContent>
+        <PaginationItem>
+          {people.page > 1
+            ? <PaginationPrevious href={passengerHref({ page: String(people.page - 1) })} />
+            : <Button variant="ghost" disabled aria-label="No previous page">← <span>Previous</span></Button>}
+        </PaginationItem>
+        {paginationItems(people.page, people.total_pages).map((item) => (
+          <PaginationItem>
+            {item === "ellipsis"
+              ? <PaginationEllipsis />
+              : <PaginationLink
+                  href={passengerHref({ page: String(item) })}
+                  isActive={item === people.page}
+                  aria-label={`Page ${item}`}
+                >{item}</PaginationLink>}
+          </PaginationItem>
+        ))}
+        <PaginationItem className="mx-[.15rem] whitespace-nowrap font-[750] max-[560px]:hidden">Page {people.page} of {people.total_pages}</PaginationItem>
+        <PaginationItem>
+          {people.has_more
+            ? <PaginationNext href={passengerHref({ page: String(people.page + 1) })} />
+            : <Button variant="ghost" disabled aria-label="No next page"><span>Next</span> →</Button>}
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  )}
+</BaseLayout>
