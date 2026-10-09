@@ -15,6 +15,7 @@ export default defineConfig({
           BETTER_AUTH_SECRET: "worker-test-secret-at-least-32-characters",
           GOOGLE_CLIENT_ID: "worker-test-google-client-id",
           GOOGLE_CLIENT_SECRET: "worker-test-google-client-secret",
+          ADMIN_EMAILS: "admin@example.com",
         },
         serviceBindings: {
           ASSETS() {
