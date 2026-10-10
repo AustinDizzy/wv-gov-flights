@@ -1,7 +1,7 @@
 {
   "name": "golden-dome-airways",
   "type": "module",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "private": true,
   "description": "Public records and flight-path data for West Virginia state aircraft.",
   "license": "CC0-1.0",
